@@ -12,5 +12,26 @@ namespace BarberBookingAPI.Controllers
         {
                 _context = context;
         }
+
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            var appointment = _context.Appointments.ToList();
+
+            return Ok(appointment);
+        }
+
+        [HttpGet("{id}")]
+        public IActionResult GetById([FromRoute] int id)
+        {
+            var appointment = _context.Appointments.Find(id);
+
+            if (appointment == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(appointment);
+        }
     }
 }
