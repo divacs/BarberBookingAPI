@@ -9,6 +9,6 @@ namespace BarberBookingAPI.Models
         public int Cancelled { get; set; } // Used to track the number of bookings cancelled by the user
         public string FullName { get; set; } = string.Empty; // Full name of the user
 
-        public List<Appointment> Apointments { get; set; } // Navigation property for appointments
+        public List<Appointment> Appointments { get; set; } = new(); // Navigation property for appointments ; with default initialization to avoid null reference issues
     }
 }
