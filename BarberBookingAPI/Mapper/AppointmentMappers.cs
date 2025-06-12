@@ -1,10 +1,11 @@
 ﻿using BarberBookingAPI.DTOs.Apointment;
+using BarberBookingAPI.Models;
 
 namespace BarberBookingAPI.Mapper
 {
-    public class AppointmentMappers
+    public static class AppointmentMappers 
     {
-        public static AppointmentDto ToAppointmentDto(Models.Appointment appointment)
+        public static AppointmentDto ToAppointmentDto(this Appointment appointment)
         {
             return new AppointmentDto
             {
