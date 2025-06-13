@@ -11,8 +11,8 @@ namespace BarberBookingAPI.Mapper
             {
                 Id = appointment.Id,
                 StartTime = appointment.StartTime,
-                EndTime = appointment.EndTime,
-                WorkerId = int.TryParse(appointment.WorkerId, out var workerId) ? workerId : 0 // Safely parse WorkerId to int, default to 0 if parsing fails
+                EndTime = appointment.EndTime
+               
             };
         }
     }
