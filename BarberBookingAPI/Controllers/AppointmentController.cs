@@ -1,4 +1,6 @@
 ﻿using BarberBookingAPI.Data;
+using BarberBookingAPI.DTOs.Apointment;
+using BarberBookingAPI.Mapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberBookingAPI.Controllers
@@ -16,7 +18,7 @@ namespace BarberBookingAPI.Controllers
         [HttpGet]
         public IActionResult GetAll()
         {
-            var appointment = _context.Appointments.ToList();
+            var appointment = _context.Appointments.ToList().Select(a => a.ToAppointmentDto());
 
             return Ok(appointment);
         }
@@ -31,7 +33,31 @@ namespace BarberBookingAPI.Controllers
                 return NotFound();
             }
 
-            return Ok(appointment);
+            return Ok(appointment.ToAppointmentDto());
+        }
+
+        [HttpPost]
+        public IActionResult Create([FromBody] CreateAppointmentRequestDto appointmentDto)
+        {
+            if (appointmentDto == null)
+            {
+                return BadRequest("Appointment data is required.");
+            }
+            // Validate that the selected barber service exists in the database
+            if (!_context.BarberServices.Any(s => s.Id == appointmentDto.BarberServiceId))
+            {
+                return BadRequest("Selected service does not exist.");
+            }
+
+            // Validate that the specified user exists in the database
+            if (!_context.Users.Any(u => u.Id == appointmentDto.ApplicationUserId))
+            {
+                return BadRequest("Selected user does not exist.");
+            }
+            var appointment = appointmentDto.ToAppointmentFromCreateDto();
+            _context.Appointments.Add(appointment);
+            _context.SaveChanges();
+            return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment.ToAppointmentDto());
         }
     }
 }

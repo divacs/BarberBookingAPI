@@ -5,14 +5,25 @@ namespace BarberBookingAPI.Mapper
 {
     public static class AppointmentMappers 
     {
-        public static AppointmentDto ToAppointmentDto(this Appointment appointment)
+        public static AppointmentDto ToAppointmentDto(this Appointment appointmentModel)
         {
             return new AppointmentDto
             {
-                Id = appointment.Id,
-                StartTime = appointment.StartTime,
-                EndTime = appointment.EndTime
+                Id = appointmentModel.Id,
+                StartTime = appointmentModel.StartTime,
+                EndTime = appointmentModel.EndTime
                
+            };
+        }
+
+        public static Appointment ToAppointmentFromCreateDto(this CreateAppointmentRequestDto appointmentDto)
+        {
+            return new Appointment
+            {
+                StartTime = appointmentDto.StartTime,
+                EndTime = appointmentDto.EndTime,
+                ApplicationUserId = appointmentDto.ApplicationUserId ?? string.Empty,
+                BarberServiceId = appointmentDto.BarberServiceId ?? string.Empty
             };
         }
     }

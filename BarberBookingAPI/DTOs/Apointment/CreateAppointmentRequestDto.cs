@@ -2,14 +2,17 @@
 
 namespace BarberBookingAPI.DTOs.Apointment
 {
-    public class AppointmentDto : IValidatableObject
+    public class CreateAppointmentRequestDto
     {
-        public int Id { get; set; }
         [Required]
         public DateTime StartTime { get; set; } // Start time of the appointment
 
         [Required]
         public DateTime EndTime { get; set; } // End time of the appointment
+
+
+        public string ApplicationUserId { get; set; } = string.Empty;
+        public string BarberServiceId { get; set; } = string.Empty;
 
         // Custom validation to ensure the appointment is within working hours
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -34,3 +37,4 @@ namespace BarberBookingAPI.DTOs.Apointment
         }
     }
 }
+
