@@ -2,6 +2,7 @@
 using BarberBookingAPI.DTOs.Apointment;
 using BarberBookingAPI.Mapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BarberBookingAPI.Controllers
 {
@@ -12,21 +13,22 @@ namespace BarberBookingAPI.Controllers
         private readonly ApplicationDBContext _context;
         public AppointmentController(ApplicationDBContext context)
         {
-                _context = context;
+            _context = context;
         }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var appointment = _context.Appointments.ToList().Select(a => a.ToAppointmentDto());
+            var appointment = await _context.Appointments.ToListAsync();
+            var appointmentDto = appointment.Select(a => a.ToAppointmentDto());
 
-            return Ok(appointment);
+            return Ok(appointmentDto);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById([FromRoute] int id)
+        public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var appointment = _context.Appointments.Find(id);
+            var appointment = await _context.Appointments.FindAsync(id);
 
             if (appointment == null)
             {
@@ -37,27 +39,73 @@ namespace BarberBookingAPI.Controllers
         }
 
         [HttpPost]
-        public IActionResult Create([FromBody] CreateAppointmentRequestDto appointmentDto)
+        public async Task<IActionResult> Create([FromBody] CreateAppointmentRequestDto appointmentDto)
         {
             if (appointmentDto == null)
             {
                 return BadRequest("Appointment data is required.");
             }
             // Validate that the selected barber service exists in the database
-            if (!_context.BarberServices.Any(s => s.Id == appointmentDto.BarberServiceId))
+            if (!await _context.BarberServices.AnyAsync(s => s.Id == appointmentDto.BarberServiceId))
             {
                 return BadRequest("Selected service does not exist.");
             }
 
             // Validate that the specified user exists in the database
-            if (!_context.Users.Any(u => u.Id == appointmentDto.ApplicationUserId))
+            if (!await _context.Users.AnyAsync(u => u.Id == appointmentDto.ApplicationUserId))
             {
                 return BadRequest("Selected user does not exist.");
             }
             var appointment = appointmentDto.ToAppointmentFromCreateDto();
-            _context.Appointments.Add(appointment);
-            _context.SaveChanges();
+            await _context.Appointments.AddAsync(appointment);
+            await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment.ToAppointmentDto());
+        }
+
+        [HttpPut]
+        [Route("{id}")]
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateAppointmentRequestDto appointmentDto)
+        {
+            if (appointmentDto == null)
+            {
+                return BadRequest("Appointment data is required.");
+            }
+            var existingAppointment = await _context.Appointments.FindAsync(id);
+            if (existingAppointment == null)
+            {
+                return NotFound();
+            }
+            // Validate that the selected barber service exists in the database
+            if (!await _context.BarberServices.AnyAsync(s => s.Id == appointmentDto.BarberServiceId))
+            {
+                return BadRequest("Selected service does not exist.");
+            }
+            // Validate that the specified user exists in the database
+            if (!await _context.Users.AnyAsync(u => u.Id == appointmentDto.ApplicationUserId))
+            {
+                return BadRequest("Selected user does not exist.");
+            }
+            existingAppointment.StartTime = appointmentDto.StartTime;
+            existingAppointment.EndTime = appointmentDto.EndTime;
+            existingAppointment.ApplicationUserId = appointmentDto.ApplicationUserId;
+            existingAppointment.BarberServiceId = appointmentDto.BarberServiceId;
+            await _context.SaveChangesAsync();
+
+            return Ok(existingAppointment.ToAppointmentDto());
+        }
+
+        [HttpDelete]
+        [Route("{id}")]
+        public async Task<IActionResult> Delete([FromRoute] int id)
+        {
+            var appointment = await _context.Appointments.FindAsync(id);
+            if (appointment == null)
+            {
+                return NotFound();
+            }
+            _context.Appointments.Remove(appointment);
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
     }
 }
