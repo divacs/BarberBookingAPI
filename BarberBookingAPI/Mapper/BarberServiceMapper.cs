@@ -18,5 +18,14 @@ namespace BarberBookingAPI.Mapper
 
             };
         }
+        public static BarberService ToBarberServiceFromCreateDto(this CreateBarberServiceRequestDto barberServiceDto)
+        {
+            return new BarberService
+            {
+                Name = barberServiceDto.Name,
+                Duration = barberServiceDto.Duration,
+                Price = barberServiceDto.Price,
+            };
+        }
     }
 }
