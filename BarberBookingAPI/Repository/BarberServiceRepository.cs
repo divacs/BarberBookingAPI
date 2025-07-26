@@ -15,14 +15,14 @@ namespace BarberBookingAPI.Repository
             _context = context;
         }
 
-        public async Task<BarberService> CreateBarberService(BarberService barberServiceModel)
+        public async Task<BarberService> CreateBarberServiceAsync(BarberService barberServiceModel)
         {
             await _context.BarberServices.AddAsync(barberServiceModel);
             await _context.SaveChangesAsync();
             return barberServiceModel;
         }
 
-        public async Task<BarberService?> DeleteByServiceAsync(int id)
+        public async Task<BarberService?> DeleteAsync(int id)
         {
             var barberServiceModel = await _context.BarberServices.FindAsync(id);
 
@@ -46,7 +46,7 @@ namespace BarberBookingAPI.Repository
             return await _context.BarberServices.FindAsync(id);
         }
 
-        public async Task<BarberService?> UpdateByIdAsync(int id, BarberService barberServiceModel)
+        public async Task<BarberService?> UpdateAsync(int id, UpdateBarberServiceRequestDto barberServiceModel)
         {
             var existingBarberService = await _context.BarberServices.FindAsync(id);
 

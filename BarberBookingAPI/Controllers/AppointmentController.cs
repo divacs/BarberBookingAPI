@@ -88,7 +88,7 @@ namespace BarberBookingAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var appointment = await _context.Appointments.FindAsync(id);
+            var appointment = await _appointmentRepo.DeleteAsync(id);
             if (appointment == null)
             {
                 return NotFound();
