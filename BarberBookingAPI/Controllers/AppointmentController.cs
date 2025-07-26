@@ -71,15 +71,15 @@ namespace BarberBookingAPI.Controllers
                 return NotFound();
             }
             // Validate that the selected barber service exists in the database
-            if (!await _context.BarberServices.AnyAsync(s => s.Id == appointmentDto.BarberServiceId))
-            {
-                return BadRequest("Selected service does not exist.");
-            }
+            //if (!await _context.Users.AnyAsync(s => s.Id == appointmentDto.ApplicationUserId))
+            //{
+            //    return BadRequest("Selected service does not exist.");
+            //}
             // Validate that the specified user exists in the database
-            if (!await _context.Users.AnyAsync(u => u.Id == appointmentDto.ApplicationUserId))
-            {
-                return BadRequest("Selected user does not exist.");
-            }
+            //if (!await _context.Users.AnyAsync(u => u.Id == appointmentDto.ApplicationUserId))
+            //{
+            //    return BadRequest("Selected user does not exist.");
+            //}
        
             return Ok(existingAppointment.ToAppointmentDto());
         }
@@ -93,8 +93,7 @@ namespace BarberBookingAPI.Controllers
             {
                 return NotFound();
             }
-            _context.Appointments.Remove(appointment);
-            await _context.SaveChangesAsync();
+
             return NoContent();
         }
     }
