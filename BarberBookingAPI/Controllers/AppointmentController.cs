@@ -1,5 +1,6 @@
 ﻿using BarberBookingAPI.Data;
 using BarberBookingAPI.DTOs.Apointment;
+using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Mapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +12,17 @@ namespace BarberBookingAPI.Controllers
     public class AppointmentController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
-        public AppointmentController(ApplicationDBContext context)
+        private readonly IAppointmentRepository _appointmentRepo;
+        public AppointmentController(ApplicationDBContext context, IAppointmentRepository appointmentRepo)
         {
             _context = context;
+            _appointmentRepo = appointmentRepo;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var appointment = await _context.Appointments.ToListAsync();
+            var appointment = await _appointmentRepo.GetAllAsnc(); 
             var appointmentDto = appointment.Select(a => a.ToAppointmentDto());
 
             return Ok(appointmentDto);
@@ -28,7 +31,10 @@ namespace BarberBookingAPI.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var appointment = await _context.Appointments.FindAsync(id);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var appointment = await _appointmentRepo.GetByIdAsync(id);
 
             if (appointment == null)
             {
@@ -41,25 +47,14 @@ namespace BarberBookingAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateAppointmentRequestDto appointmentDto)
         {
-            if (appointmentDto == null)
-            {
-                return BadRequest("Appointment data is required.");
-            }
-            // Validate that the selected barber service exists in the database
-            if (!await _context.BarberServices.AnyAsync(s => s.Id == appointmentDto.BarberServiceId))
-            {
-                return BadRequest("Selected service does not exist.");
-            }
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            // Validate that the specified user exists in the database
-            if (!await _context.Users.AnyAsync(u => u.Id == appointmentDto.ApplicationUserId))
-            {
-                return BadRequest("Selected user does not exist.");
-            }
-            var appointment = appointmentDto.ToAppointmentFromCreateDto();
-            await _context.Appointments.AddAsync(appointment);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment.ToAppointmentDto());
+            var appointmentModel = appointmentDto.ToAppointmentFromCreateDto();
+
+            await _appointmentRepo.CreateAsync(appointmentModel);
+
+            return CreatedAtAction(nameof(GetById), new { id = appointmentModel.Id }, appointmentModel.ToAppointmentDto());
         }
 
         [HttpPut]
@@ -70,7 +65,7 @@ namespace BarberBookingAPI.Controllers
             {
                 return BadRequest("Appointment data is required.");
             }
-            var existingAppointment = await _context.Appointments.FindAsync(id);
+            var existingAppointment = await _appointmentRepo.UpdateAsync(id, appointmentDto);
             if (existingAppointment == null)
             {
                 return NotFound();
@@ -85,12 +80,7 @@ namespace BarberBookingAPI.Controllers
             {
                 return BadRequest("Selected user does not exist.");
             }
-            existingAppointment.StartTime = appointmentDto.StartTime;
-            existingAppointment.EndTime = appointmentDto.EndTime;
-            existingAppointment.ApplicationUserId = appointmentDto.ApplicationUserId;
-            existingAppointment.BarberServiceId = appointmentDto.BarberServiceId;
-            await _context.SaveChangesAsync();
-
+       
             return Ok(existingAppointment.ToAppointmentDto());
         }
 
