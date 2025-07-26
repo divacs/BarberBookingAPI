@@ -54,6 +54,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 });*/
 
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+builder.Services.AddScoped<IBarberServiceRepository, BarberServiceRepository>();
 
 var app = builder.Build();
 
