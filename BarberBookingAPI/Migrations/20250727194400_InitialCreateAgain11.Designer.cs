@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarberBookingAPI.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20250613193852_RemoveWorkerId")]
-    partial class RemoveWorkerId
+    [Migration("20250727194400_InitialCreateAgain11")]
+    partial class InitialCreateAgain11
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -115,9 +115,8 @@ namespace BarberBookingAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("BarberServiceId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("BarberServiceId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
@@ -136,8 +135,11 @@ namespace BarberBookingAPI.Migrations
 
             modelBuilder.Entity("BarberBookingAPI.Models.BarberService", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Duration")
                         .HasColumnType("int");

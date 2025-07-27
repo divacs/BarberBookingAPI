@@ -12,7 +12,7 @@ namespace BarberBookingAPI.DTOs.Apointment
 
 
         public string ApplicationUserId { get; set; } = string.Empty;
-        public string BarberServiceId { get; set; } = string.Empty;
+        public int BarberServiceId { get; set; } 
 
         // Custom validation to ensure the appointment is within working hours
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

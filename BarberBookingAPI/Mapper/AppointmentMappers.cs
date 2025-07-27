@@ -23,7 +23,7 @@ namespace BarberBookingAPI.Mapper
                 StartTime = appointmentDto.StartTime,
                 EndTime = appointmentDto.EndTime,
                 ApplicationUserId = appointmentDto.ApplicationUserId ?? string.Empty,
-                BarberServiceId = appointmentDto.BarberServiceId ?? string.Empty
+                BarberServiceId = appointmentDto.BarberServiceId
             };
         }
     }

@@ -9,7 +9,7 @@
         public string ApplicationUserId { get; set; } = string.Empty; // Identifier for the client, typically a user ID 
         public ApplicationUser ApplicationUser { get; set; } // Navigation property for the client
         
-        public string BarberServiceId { get; set; } = string.Empty; // Identifier for the barber service
+        public int BarberServiceId { get; set; } // Identifier for the barber service
         public BarberService BarberService { get; set; } // Navigation property for the barber service
     }
 }

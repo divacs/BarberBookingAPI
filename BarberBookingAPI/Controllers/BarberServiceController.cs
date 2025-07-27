@@ -13,7 +13,7 @@ namespace BarberBookingAPI.Controllers
     public class BarberServiceController : ControllerBase 
     {
         private readonly IBarberServiceRepository _barberServiceRepo;
-        public BarberServiceController(int id, IBarberServiceRepository barberServiceRepo)
+        public BarberServiceController(IBarberServiceRepository barberServiceRepo)
         {
             _barberServiceRepo = barberServiceRepo;
         }
