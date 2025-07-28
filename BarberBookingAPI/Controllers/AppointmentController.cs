@@ -58,7 +58,7 @@ namespace BarberBookingAPI.Controllers
         }
 
         [HttpPut]
-        [Route("{id}")]
+        [Route("{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateAppointmentRequestDto appointmentDto)
         {
             if (appointmentDto == null)
@@ -85,7 +85,7 @@ namespace BarberBookingAPI.Controllers
         }
 
         [HttpDelete]
-        [Route("{id}")]
+        [Route("{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
             var appointment = await _appointmentRepo.DeleteAsync(id);

@@ -27,7 +27,7 @@ namespace BarberBookingAPI.Controllers
 
             return Ok(barberService);
         }
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
             if (!ModelState.IsValid)
@@ -55,7 +55,7 @@ namespace BarberBookingAPI.Controllers
             return CreatedAtAction(nameof(GetById), new { id = barberServiceModel.Id }, barberServiceModel.ToBarberServiceDto());
         }
         [HttpPut]
-        [Route("{id}")]
+        [Route("{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] DTOs.BarberService.UpdateBarberServiceRequestDto barberServiceDto)
         {
             if (barberServiceDto == null)

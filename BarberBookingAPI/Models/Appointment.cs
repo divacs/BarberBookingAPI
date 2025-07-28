@@ -1,7 +1,10 @@
-﻿namespace BarberBookingAPI.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BarberBookingAPI.Models
 {
     public class Appointment
     {
+        [Key]
         public int Id { get; set; } // Unique identifier for the appointment, using an integer type
         public DateTime StartTime { get; set; } // Start time of the appointment
         public DateTime EndTime { get; set; } // End time of the appointment
