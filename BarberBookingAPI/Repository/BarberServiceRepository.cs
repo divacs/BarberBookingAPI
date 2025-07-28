@@ -36,9 +36,18 @@ namespace BarberBookingAPI.Repository
             return barberServiceModel;
         }
 
-        public async Task<List<BarberService>> GetAllAsync()
+        public async Task<List<BarberService>> GetAllAsnc()
         {
             return await _context.BarberServices.ToListAsync();
+        }
+
+
+        public async Task<List<BarberService>> GetAllAsync(int pageNumber, int pageSize)
+        {
+            return await _context.BarberServices
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
 
         public async Task<BarberService?> GetByIdAsync(int id)

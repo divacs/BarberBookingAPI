@@ -6,7 +6,8 @@ namespace BarberBookingAPI.Interfaces
 {
     public interface IBarberServiceRepository
     {
-        Task<List<BarberService>> GetAllAsync();
+        Task<List<BarberService>> GetAllAsync(int pageNumber, int pageSize);
+        Task<List<BarberService>> GetAllAsnc();
         Task<BarberService?> GetByIdAsync(int id);
         Task<BarberService> CreateBarberServiceAsync(BarberService barberService);
         Task<BarberService?> UpdateAsync(int id, UpdateBarberServiceRequestDto barberService);

@@ -21,7 +21,16 @@ namespace BarberBookingAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var barberService = await _barberServiceRepo.GetAllAsync();
+            var barberService = await _barberServiceRepo.GetAllAsnc();
+
+            var barberServiceDto = barberService.Select(b => b.ToBarberServiceDto());
+
+            return Ok(barberService);
+        }
+        [HttpGet("pagination")]
+        public async Task<IActionResult> GetAll([FromQuery] int pageNumber, [FromQuery] int pageSize)
+        {
+            var barberService = await _barberServiceRepo.GetAllAsync(pageNumber, pageSize);
 
             var barberServiceDto = barberService.Select(b => b.ToBarberServiceDto());
 
