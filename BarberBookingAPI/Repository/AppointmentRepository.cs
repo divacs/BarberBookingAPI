@@ -34,10 +34,16 @@ namespace BarberBookingAPI.Repository
             await _context.SaveChangesAsync();
             return appointmentModel;
         }
-
         public async Task<List<Appointment>> GetAllAsnc()
         {
-            return await _context.Appointments.ToListAsync();
+            return await _context.Appointments.ToListAsync();                
+        }
+        public async Task<List<Appointment>> GetAllAsnc(int pageNumber, int pageSize)
+        {
+            return await _context.Appointments
+                .Skip((pageNumber - 1) * pageSize) // Skip the correct number of records
+                .Take(pageSize)                   // Take the specified number of records
+                .ToListAsync();                   // Convert to a list asynchronously
         }
 
         public async Task<Appointment?> GetByIdAsync(int id)

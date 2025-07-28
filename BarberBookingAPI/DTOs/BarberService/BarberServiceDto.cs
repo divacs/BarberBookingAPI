@@ -12,5 +12,7 @@ namespace BarberBookingAPI.DTOs.BarberService
         public int Duration { get; set; } // Duration of the service in minutes
         [Required]
         public int Price { get; set; } // Price of the service in the smallest currency unit (e.g., rsd)
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
     }
 }

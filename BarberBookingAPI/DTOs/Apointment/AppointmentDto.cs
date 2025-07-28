@@ -10,6 +10,9 @@ namespace BarberBookingAPI.DTOs.Apointment
 
         [Required]
         public DateTime EndTime { get; set; } // End time of the appointment
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+
 
         // Custom validation to ensure the appointment is within working hours
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

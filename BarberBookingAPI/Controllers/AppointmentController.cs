@@ -18,11 +18,19 @@ namespace BarberBookingAPI.Controllers
             _context = context;
             _appointmentRepo = appointmentRepo;
         }
-
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var appointment = await _appointmentRepo.GetAllAsnc(); 
+            var appointment = await _appointmentRepo.GetAllAsnc();
+            var appointmentDto = appointment.Select(a => a.ToAppointmentDto());
+
+            return Ok(appointmentDto);
+        }
+
+        [HttpGet("pagination")]
+        public async Task<IActionResult> GetAll([FromQuery] int pageNumber, [FromQuery] int pageSize)
+        {
+            var appointment = await _appointmentRepo.GetAllAsnc(pageNumber, pageSize); 
             var appointmentDto = appointment.Select(a => a.ToAppointmentDto());
 
             return Ok(appointmentDto);
