@@ -2,6 +2,7 @@
 using BarberBookingAPI.DTOs.Apointment;
 using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Mapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ namespace BarberBookingAPI.Controllers
             _appointmentRepo = appointmentRepo;
         }
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetAll()
         {
             var appointment = await _appointmentRepo.GetAllAsnc();
