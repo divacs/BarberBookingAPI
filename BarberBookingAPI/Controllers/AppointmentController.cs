@@ -1,5 +1,6 @@
 ﻿using BarberBookingAPI.Data;
 using BarberBookingAPI.DTOs.Apointment;
+using BarberBookingAPI.Helppers;
 using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Mapper;
 using Microsoft.AspNetCore.Authorization;
@@ -20,7 +21,7 @@ namespace BarberBookingAPI.Controllers
             _appointmentRepo = appointmentRepo;
         }
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll()
         {
             var appointment = await _appointmentRepo.GetAllAsnc();
@@ -30,15 +31,17 @@ namespace BarberBookingAPI.Controllers
         }
 
         [HttpGet("pagination")]
-        public async Task<IActionResult> GetAll([FromQuery] int pageNumber, [FromQuery] int pageSize)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
         {
-            var appointment = await _appointmentRepo.GetAllAsnc(pageNumber, pageSize); 
+            var appointment = await _appointmentRepo.GetAllAsnc(query.PageNumber, query.PageSize); 
             var appointmentDto = appointment.Select(a => a.ToAppointmentDto());
 
             return Ok(appointmentDto);
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
             if (!ModelState.IsValid)
@@ -55,6 +58,7 @@ namespace BarberBookingAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Create([FromBody] CreateAppointmentRequestDto appointmentDto)
         {
             if (!ModelState.IsValid)
@@ -69,6 +73,7 @@ namespace BarberBookingAPI.Controllers
 
         [HttpPut]
         [Route("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateAppointmentRequestDto appointmentDto)
         {
             if (appointmentDto == null)
@@ -80,22 +85,13 @@ namespace BarberBookingAPI.Controllers
             {
                 return NotFound();
             }
-            // Validate that the selected barber service exists in the database
-            //if (!await _context.Users.AnyAsync(s => s.Id == appointmentDto.ApplicationUserId))
-            //{
-            //    return BadRequest("Selected service does not exist.");
-            //}
-            // Validate that the specified user exists in the database
-            //if (!await _context.Users.AnyAsync(u => u.Id == appointmentDto.ApplicationUserId))
-            //{
-            //    return BadRequest("Selected user does not exist.");
-            //}
        
             return Ok(existingAppointment.ToAppointmentDto());
         }
 
         [HttpDelete]
         [Route("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
             var appointment = await _appointmentRepo.DeleteAsync(id);

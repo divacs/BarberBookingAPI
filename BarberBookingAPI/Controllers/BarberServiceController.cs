@@ -1,5 +1,6 @@
 ﻿using BarberBookingAPI.DTOs.Apointment;
 using BarberBookingAPI.DTOs.BarberService;
+using BarberBookingAPI.Helppers;
 using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Mapper;
 using BarberBookingAPI.Models;
@@ -28,9 +29,9 @@ namespace BarberBookingAPI.Controllers
             return Ok(barberService);
         }
         [HttpGet("pagination")]
-        public async Task<IActionResult> GetAll([FromQuery] int pageNumber, [FromQuery] int pageSize)
+        public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
         {
-            var barberService = await _barberServiceRepo.GetAllAsync(pageNumber, pageSize);
+            var barberService = await _barberServiceRepo.GetAllAsync(query.PageNumber, query.PageSize);
 
             var barberServiceDto = barberService.Select(b => b.ToBarberServiceDto());
 
