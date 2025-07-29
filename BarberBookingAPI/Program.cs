@@ -3,6 +3,7 @@ using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Models;
 using BarberBookingAPI.Repository;
 using BarberBookingAPI.Service;
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,8 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHangfire(x => x.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddHangfireServer();
 
 // Adding Swagger documentation and JWT authentication configuration
 builder.Services.AddSwaggerGen(option =>
@@ -89,6 +92,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IBarberServiceRepository, BarberServiceRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
@@ -101,6 +105,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthorization();
 app.UseAuthorization();
+app.UseHangfireDashboard();
 
 app.MapControllers();
 

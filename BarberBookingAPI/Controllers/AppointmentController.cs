@@ -15,10 +15,12 @@ namespace BarberBookingAPI.Controllers
     {
         private readonly ApplicationDBContext _context;
         private readonly IAppointmentRepository _appointmentRepo;
-        public AppointmentController(ApplicationDBContext context, IAppointmentRepository appointmentRepo)
+        private readonly IEmailService _emailService;
+        public AppointmentController(ApplicationDBContext context, IAppointmentRepository appointmentRepo, IEmailService emailService)
         {
             _context = context;
             _appointmentRepo = appointmentRepo;
+            _emailService = emailService;
         }
         [HttpGet]
         [Authorize]
@@ -67,6 +69,16 @@ namespace BarberBookingAPI.Controllers
             var appointmentModel = appointmentDto.ToAppointmentFromCreateDto();
 
             await _appointmentRepo.CreateAsync(appointmentModel);
+
+            var user = await _context.Users.FindAsync(appointmentModel.ApplicationUserId);
+            if (user != null)
+            {
+                await _emailService.SendEmailAsync(
+                    user.Email,
+                    "Appointment Confirmation",
+                    $"Dear {user.UserName}, you have successfully scheduled an appointment for {appointmentModel.StartTime}."
+                );
+            }
 
             return CreatedAtAction(nameof(GetById), new { id = appointmentModel.Id }, appointmentModel.ToAppointmentDto());
         }
