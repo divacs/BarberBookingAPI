@@ -21,7 +21,7 @@ namespace BarberBookingAPI.Controllers
             _appointmentRepo = appointmentRepo;
         }
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> GetAll()
         {
             var appointment = await _appointmentRepo.GetAllAsnc();
@@ -31,7 +31,7 @@ namespace BarberBookingAPI.Controllers
         }
 
         [HttpGet("pagination")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
         {
             var appointment = await _appointmentRepo.GetAllAsnc(query.PageNumber, query.PageSize); 
@@ -41,7 +41,7 @@ namespace BarberBookingAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
             if (!ModelState.IsValid)
@@ -73,7 +73,7 @@ namespace BarberBookingAPI.Controllers
 
         [HttpPut]
         [Route("{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateAppointmentRequestDto appointmentDto)
         {
             if (appointmentDto == null)
@@ -91,7 +91,7 @@ namespace BarberBookingAPI.Controllers
 
         [HttpDelete]
         [Route("{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
             var appointment = await _appointmentRepo.DeleteAsync(id);
