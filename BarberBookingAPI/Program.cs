@@ -2,6 +2,7 @@ using BarberBookingAPI.Data;
 using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Models;
 using BarberBookingAPI.Repository;
+using BarberBookingAPI.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -57,6 +58,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IBarberServiceRepository, BarberServiceRepository>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 var app = builder.Build();
 

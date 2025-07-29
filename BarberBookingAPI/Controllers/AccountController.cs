@@ -14,9 +14,12 @@ namespace BarberBookingAPI.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
-        readonly UserManager<ApplicationUser> _userManager;
-        public AccountController(UserManager<ApplicationUser> userManager) {
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ITokenService _tokenService;
+        public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService)
+        {
             _userManager = userManager;
+            _tokenService = tokenService;
         }
 
         [HttpPost("register")]
@@ -44,7 +47,14 @@ namespace BarberBookingAPI.Controllers
                 if (!roleResult.Succeeded)
                     return StatusCode(500, roleResult.Errors);
 
-                return Ok("User created and role assigned!");
+                return Ok(
+                        new NewUserDto
+                        { 
+                            UserName = appUser.UserName,
+                            Email = appUser.Email,
+                            Token = _tokenService.CreateToken(appUser)
+                        }
+                );
             }
             catch (Exception e)
             {
