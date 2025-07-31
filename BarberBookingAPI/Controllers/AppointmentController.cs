@@ -58,6 +58,53 @@ namespace BarberBookingAPI.Controllers
 
             return Ok(appointment.ToAppointmentDto());
         }
+        [HttpGet("test-email")]
+        public async Task<IActionResult> TestEmail()
+        {
+            string testEmail = "nenadgf@gmail.com";
+            string subject = "Test Email";
+            string body = "<h2>This is a test email from BarberBookingAPI.</h2><p>If you received this, email service works!</p>";
+
+            try
+            {
+                await _emailService.SendEmailAsync(testEmail, subject, body);
+                return Ok("✅ Test email sent successfully to sonja.divac.com.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
+            }
+        }
+        [HttpGet("send-multiple-emails")]
+        public async Task<IActionResult> SendMultipleEmails()
+        {
+            var recipients = new List<string>
+            {
+                "aleksandar.zivkovic@stech.rs",
+                "aleksandra.carevic@stech.rs",
+                "marija.ristic@stech.rs",
+                "sonja.divac@yahoo.com"
+            };
+
+            string subject = "Test Email";
+            string body = "<h2>GDE ME VODITE U UTORAK ??? </h2>";
+
+            try
+            {
+                foreach (var email in recipients)
+                {
+                    await _emailService.SendEmailAsync(email, subject, body);
+                }
+
+                return Ok("✅ Emails sent successfully to all recipients.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
+            }
+        }
+
+
 
         [HttpPost]
         [Authorize]

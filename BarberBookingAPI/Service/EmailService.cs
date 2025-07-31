@@ -1,5 +1,6 @@
 ﻿using BarberBookingAPI.Interfaces;
 using MailKit.Net.Smtp;
+using MailKit.Security;
 using MimeKit;
 using MimeKit.Text;
 
@@ -23,11 +24,23 @@ namespace BarberBookingAPI.Service
             email.Body = new TextPart(TextFormat.Html) { Text = body };
 
             using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_configuration["EmailSettings:SmtpServer"] ?? throw new ArgumentNullException("EmailSettings:SmtpServer"),
-                                    int.Parse(_configuration["EmailSettings:Port"] ?? throw new ArgumentNullException("EmailSettings:Port")),
-                                    true);
-            await smtp.AuthenticateAsync(_configuration["EmailSettings:Username"] ?? throw new ArgumentNullException("EmailSettings:Username"),
-                                         _configuration["EmailSettings:Password"] ?? throw new ArgumentNullException("EmailSettings:Password"));
+
+            // TEMPORARY: Disable SSL certificate validation (ONLY FOR TESTING)
+            // DO NOT USE THIS IN PRODUCTION - it bypasses important security checks
+            smtp.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            //
+            // // END TEMPORARY: Disable SSL certificate validation
+
+            // Connect to the SMTP server using the settings from configuration
+            await smtp.ConnectAsync(
+                _configuration["EmailSettings:SmtpServer"] ?? throw new ArgumentNullException("EmailSettings:SmtpServer"),
+                int.Parse(_configuration["EmailSettings:Port"] ?? throw new ArgumentNullException("EmailSettings:Port")),
+                SecureSocketOptions.StartTls);
+
+            await smtp.AuthenticateAsync(
+                _configuration["EmailSettings:Username"] ?? throw new ArgumentNullException("EmailSettings:Username"),
+                _configuration["EmailSettings:Password"] ?? throw new ArgumentNullException("EmailSettings:Password"));
+
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
         }
