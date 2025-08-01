@@ -17,11 +17,13 @@ namespace BarberBookingAPI.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITokenService _tokenService;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService, SignInManager<ApplicationUser> signInManager)
+        private readonly IEmailService _emailService; 
+        public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService, SignInManager<ApplicationUser> signInManager, IEmailService emailService)
         {
             _userManager = userManager;
             _tokenService = tokenService;
             _signInManager = signInManager;
+            _emailService = emailService;
         }
 
         [HttpPost("register")]
@@ -41,21 +43,28 @@ namespace BarberBookingAPI.Controllers
                 var createUser = await _userManager.CreateAsync(appUser, register.Password);
 
                 if (!createUser.Succeeded)
-                    return BadRequest(createUser.Errors); 
+                    return BadRequest(createUser.Errors);
 
-                //  Assign the "User" role to the newly created user
+                // Assign the "User" role to the newly created user
                 var roleResult = await _userManager.AddToRoleAsync(appUser, "User");
 
                 if (!roleResult.Succeeded)
                     return StatusCode(500, roleResult.Errors);
 
+                // Send confirmation email
+                await _emailService.SendEmailAsync(
+                    appUser.Email,
+                    "Welcome to BarberBooking!",
+                    $"Dear {appUser.UserName}, your registration was successful. You can now book your appointment with ease!"
+                );
+
                 return Ok(
-                        new NewUserDto
-                        { 
-                            UserName = appUser.UserName,
-                            Email = appUser.Email,
-                            Token = _tokenService.CreateToken(appUser)
-                        }
+                    new NewUserDto
+                    {
+                        UserName = appUser.UserName,
+                        Email = appUser.Email,
+                        Token = _tokenService.CreateToken(appUser)
+                    }
                 );
             }
             catch (Exception e)
@@ -63,6 +72,7 @@ namespace BarberBookingAPI.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
+
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto login)

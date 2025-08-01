@@ -75,34 +75,34 @@ namespace BarberBookingAPI.Controllers
                 return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
             }
         }
-        [HttpGet("send-multiple-emails")]
-        public async Task<IActionResult> SendMultipleEmails()
-        {
-            var recipients = new List<string>
-            {
-                "aleksandar.zivkovic@stech.rs",
-                "aleksandra.carevic@stech.rs",
-                "marija.ristic@stech.rs",
-                "sonja.divac@yahoo.com"
-            };
+        //[HttpGet("send-multiple-emails")]
+        //public async Task<IActionResult> SendMultipleEmails()
+        //{
+        //    var recipients = new List<string>
+        //    {
+        //        "aleksandar.zivkovic@stech.rs",
+        //        "aleksandra.carevic@stech.rs",
+        //        "marija.ristic@stech.rs",
+        //        "sonja.divac@yahoo.com"
+        //    };
 
-            string subject = "Test Email";
-            string body = "<h2>GDE ME VODITE U UTORAK ??? </h2>";
+        //    string subject = "Test Email";
+        //    string body = "<h2>GDE ME VODITE U UTORAK ??? </h2>";
 
-            try
-            {
-                foreach (var email in recipients)
-                {
-                    await _emailService.SendEmailAsync(email, subject, body);
-                }
+        //    try
+        //    {
+        //        foreach (var email in recipients)
+        //        {
+        //            await _emailService.SendEmailAsync(email, subject, body);
+        //        }
 
-                return Ok("✅ Emails sent successfully to all recipients.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
-            }
-        }
+        //        return Ok("✅ Emails sent successfully to all recipients.");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
+        //    }
+        //}
 
 
 
