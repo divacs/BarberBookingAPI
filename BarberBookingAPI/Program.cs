@@ -7,6 +7,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -65,15 +66,19 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDBContext>();
 
 // adding the SCHEME for JWT and Google authentication
+// JWT is used as the default authentication scheme for protected endpoints.
+// Google uses its own GoogleDefaults.AuthenticationScheme, which is fine 
+// since it's triggered explicitly via Challenge(...) when needed.
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme =
-    options.DefaultChallengeScheme =
-    options.DefaultForbidScheme =
-    options.DefaultScheme =
-    options.DefaultSignInScheme =
-    options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    //options.DefaultForbidScheme =
+    //options.DefaultScheme =
+    //options.DefaultSignInScheme =
+    //options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
 })
+.AddCookie()
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -92,6 +97,7 @@ builder.Services.AddAuthentication(options =>
 {
     googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
     googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    googleOptions.CallbackPath = "/api/GoogleAuth/google-response";
 });
 
 

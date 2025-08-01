@@ -13,8 +13,9 @@ namespace BarberBookingAPI.Controllers
         [HttpGet("login")]
         public IActionResult LoginWithGoogle()
         {
-            //var redirectUrl = Url.Action("GoogleResponse", "GoogleAuth");
-            var redirectUrl = "http://localhost:5246/auth/google-response";
+            // This will redirect the user to Google's OAuth 2.0 server for authentication
+            var redirectUrl = "http://localhost:5246/api/GoogleAuth/google-response";
+            // var redirectUrl = Url.Action("GoogleResponse", "GoogleAuth");
             var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
             return Challenge(properties, GoogleDefaults.AuthenticationScheme);
         }
