@@ -1,7 +1,6 @@
-
 # 💈 BarberBookingAPI
 
-BarberBookingAPI is an ASP.NET Core Web API project for booking appointments in a barbershop. It supports user registration and login, JWT authentication, role-based authorization, sending email confirmations, and is structured using Clean Architecture principles.
+BarberBookingAPI is an ASP.NET Core Web API project for booking appointments in a barbershop. It supports user registration and login, JWT authentication, role-based authorization, sending email confirmations, and includes Single Sign-On (SSO) via Google. The application is structured using Clean Architecture principles and follows security best practices by separating sensitive configuration.
 
 ---
 
@@ -11,11 +10,13 @@ BarberBookingAPI is an ASP.NET Core Web API project for booking appointments in 
 - Entity Framework Core
 - SQL Server
 - JWT (JSON Web Tokens)
-- Identity Framework
-- MailKit (for sending emails)
+- ASP.NET Identity
+- MailKit (email service)
+- Google OAuth 2.0 (SSO)
+- Hangfire (background jobs)
 - Repository Pattern
 - Custom Mapping Classes
-- Clean Architecture Principles
+- Clean Architecture
 
 ---
 
@@ -26,7 +27,7 @@ The project follows **Clean Architecture** principles:
 ```
 BarberBookingAPI/
 │
-├── Controllers/              // API controllers (Account, Appointments, Services)
+├── Controllers/              // API controllers (Account, Appointments, Auth, Services)
 ├── Data/                     // ApplicationDBContext (EF Core)
 ├── DTOs/                     // Data Transfer Objects (DTOs)
 │   ├── Account/
@@ -34,12 +35,13 @@ BarberBookingAPI/
 │   └── BarberService/
 ├── Helpers/                  // Query objects (for pagination/filtering)
 ├── Interfaces/               // Repository and service interfaces
-├── Mapper/                   // Custom mapping classes 
+├── Mapper/                   // Custom mapping classes
 ├── Migrations/               // EF Core migrations
 ├── Models/                   // Entity models
 ├── Repository/               // Repository implementations
-├── Service/                  // Email and Token services
-└── appsettings.json          // Configuration (JWT, Email, Connection Strings)
+├── Service/                  // Email, Token, Background jobs (Hangfire)
+├── appsettings.json          // General configuration
+├── appsettings.Development.json // Development secrets (excluded from Git)
 ```
 
 ---
@@ -49,18 +51,20 @@ BarberBookingAPI/
 - Uses ASP.NET Identity for user management
 - JWT is used for authenticating users
 - Two roles supported: `Admin` and `User`
+- Google SSO is implemented for external login via OAuth 2.0
 
 ### 🔑 Endpoints
+
 - `POST /api/account/register` – Register a new user
 - `POST /api/account/login` – Log in and get JWT token
-
-Tokens are generated via the `TokenService.cs`.
+- `GET /auth/login-google` – Redirects to Google for SSO login
 
 ---
 
 ## 📅 Appointment Booking
 
 Users can:
+
 - View available barber services
 - Book appointments
 - View, update, or delete their appointments
@@ -72,13 +76,50 @@ Users can:
 A confirmation email is sent when an appointment is created.
 
 - Implemented using **MailKit**
-- Configuration is stored in `appsettings.json`:
+- Configuration stored in `appsettings.json` and overridden in `appsettings.Development.json`
+
+---
+
+## 🔄 Background Jobs with Hangfire
+
+Hangfire is used to schedule and execute background jobs, such as sending delayed email notifications or performing cleanup tasks asynchronously.
+
+---
+
+## 🌐 Google Authentication (SSO)
+
+- Configured via **Google Developer Console**
+- Requires `ClientId` and `ClientSecret`
+- These credentials are stored securely in `appsettings.Development.json` (excluded from Git)
+
+---
+
+## 🔐 Configuration and Security
+
+To avoid leaking sensitive credentials (e.g., email, JWT, Google secrets):
+
+- `appsettings.json` contains general configuration
+- `appsettings.Development.json` contains secrets and is **excluded** from Git
+
+`.gitignore` includes:
+
+```
+appsettings.Development.json
+```
+
+Ensure `appsettings.Development.json` includes:
 
 ```json
+"Authentication": {
+  "Google": {
+    "ClientId": "your-client-id",
+    "ClientSecret": "your-client-secret"
+  }
+},
 "EmailSettings": {
   "From": "your@email.com",
-  "SmtpServer": "smtp.yourprovider.com",
-  "Port": "465",
+  "SmtpServer": "smtp.provider.com",
+  "Port": 465,
   "Username": "your@email.com",
   "Password": "yourPassword"
 }
@@ -89,6 +130,7 @@ A confirmation email is sent when an appointment is created.
 ## 📌 Query Objects
 
 Custom query objects are used for:
+
 - Pagination: `?PageNumber=1&PageSize=10`
 - Filtering: Search by parameters
 
@@ -99,6 +141,7 @@ Custom query objects are used for:
 SQL Server is used. Entity Framework Core handles migrations and seeding.
 
 ### Commands:
+
 ```bash
 dotnet ef migrations add InitialCreate
 dotnet ef database update
@@ -106,33 +149,18 @@ dotnet ef database update
 
 ---
 
-## 🧼 Clean Architecture
-
-Clean Architecture ensures:
-- Separation of concerns
-- Easy testing and maintenance
-- No direct dependency on framework in core logic
-
-Flow:
-`Controller → Repository Interface → Implementation → DB Context`
-
-Models and DTOs are separated and mapping is done through custom mappers.
-
----
-
 ## ✅ How to Run
 
-1. Set up your connection string in `appsettings.json`
-2. Configure email credentials in `"EmailSettings"`
-3. Apply migrations:
+1. Add your `appsettings.Development.json` with secrets
+2. Apply migrations:
    ```bash
    dotnet ef database update
    ```
-4. Run the project:
+3. Run the project:
    ```bash
    dotnet run
    ```
-5. Open Swagger UI at `https://localhost:<port>/swagger`
+4. Open Swagger UI at `https://localhost:<port>/swagger`
 
 ---
 
@@ -140,9 +168,9 @@ Models and DTOs are separated and mapping is done through custom mappers.
 
 ```json
 {
-  "username": "sonja",
-  "email": "sonja@email.com",
-  "password": "Test123!"
+  "username": "probni",
+  "email": "probni@email.com",
+  "password": "Probni_123456"
 }
 ```
 
@@ -151,4 +179,5 @@ Models and DTOs are separated and mapping is done through custom mappers.
 ## 🙌 Author
 
 - 👩 Sonja Divac (2025)
-- Project created for practicing advanced .NET Web API development with clean architecture and modern patterns.
+- Project created for showcasing .NET Web API skills with modern design and security practices for a medior developer portfolio.
+
