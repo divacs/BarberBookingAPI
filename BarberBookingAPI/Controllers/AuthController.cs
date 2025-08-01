@@ -14,19 +14,23 @@ namespace BarberBookingAPI.Controllers
         public IActionResult LoginWithGoogle()
         {
             // This will redirect the user to Google's OAuth 2.0 server for authentication
-            var redirectUrl = "http://localhost:5246/api/GoogleAuth/google-response";
-            // var redirectUrl = Url.Action("GoogleResponse", "GoogleAuth");
+            // var redirectUrl = "http://localhost:5246/api/GoogleAuth/google-response";
+            var redirectUrl = Url.Action("GoogleResponse", "GoogleAuth");
             var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
             return Challenge(properties, GoogleDefaults.AuthenticationScheme);
         }
 
         // Endpoint called by Google after successful login
+        [AllowAnonymous]
         [HttpGet("google-response")]
         public async Task<IActionResult> GoogleResponse()
         {
-            var result = await HttpContext.AuthenticateAsync();
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
             if (!result.Succeeded)
-                return BadRequest("Google authentication failed.");
+            {
+                var failure = result.Failure?.Message ?? "Unknown failure";
+                return BadRequest($"Google authentication failed: {failure}");
+            }
 
             var claims = result.Principal.Identities
                 .FirstOrDefault()?.Claims.Select(claim => new

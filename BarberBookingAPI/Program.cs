@@ -11,9 +11,25 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 
+
+// var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.Console() // Log to console for development and debugging
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Override default logging
+builder.Host.UseSerilog();
+
+// Configure logging to console 
+// This is useful for debugging and monitoring in development and production environments
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 // Add services to the container.
 
@@ -81,12 +97,29 @@ builder.Services.AddAuthentication(options =>
     //options.DefaultSignInScheme =
     //options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+.AddCookie(options =>
 {
-    // // DefaultChallengeScheme = Cookie
-    // When Challenge() is called, e.g. for Google login, it uses the cookie scheme to store the state and session during the OAuth flow
-    options.Cookie.SameSite = SameSiteMode.Lax; // or None for HTTPS
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Events = new CookieAuthenticationEvents
+    {
+        OnValidatePrincipal = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation($"Validating cookie for {context.Principal.Identity.Name}");
+            return Task.CompletedTask;
+        },
+        OnRedirectToLogin = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation($"Redirect to login: {context.RedirectUri}");
+            return Task.CompletedTask;
+        },
+        OnRedirectToAccessDenied = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation($"Access denied redirect: {context.RedirectUri}");
+            return Task.CompletedTask;
+        }
+    };
 })
 .AddJwtBearer(options =>
 {
@@ -108,6 +141,17 @@ builder.Services.AddAuthentication(options =>
     googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
     googleOptions.CallbackPath = "/api/GoogleAuth/google-response";
     googleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
+    // GoogleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme; // Use cookie scheme for Google sign-in
+    // This is important: the Google middleware uses the cookie scheme to "sign in" the user after a successful login
+    // This allows the application to maintain the user's session after they authenticate with Google
+    googleOptions.Events.OnRemoteFailure = context =>
+    {
+        Console.WriteLine("OAuth remote failure: " + context.Failure?.Message);
+        context.HandleResponse(); 
+        context.Response.Redirect("/error?message=" + Uri.EscapeDataString(context.Failure?.Message ?? "Unknown error"));
+        return Task.CompletedTask;
+    };
 });
 // GoogleOptions.SignInScheme = Cookie
 // Very important: the Google middleware uses the cookie scheme to "sign in" the user after a successful login
@@ -123,6 +167,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    // Enable Swagger in development mode for testing SSO google login and other endpoints
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -132,5 +177,12 @@ app.UseAuthorization();
 app.UseHangfireDashboard();
 
 app.MapControllers();
+
+// Endpoint to redirect to Google's login page
+app.MapGet("/error", (HttpContext context) =>
+{
+    var message = context.Request.Query["message"];
+    return Results.Content($"Error during external authentication: {message}");
+});
 
 app.Run();
