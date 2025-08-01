@@ -4,6 +4,7 @@ using BarberBookingAPI.Models;
 using BarberBookingAPI.Repository;
 using BarberBookingAPI.Service;
 using Hangfire;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -71,14 +72,22 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // since it's triggered explicitly via Challenge(...) when needed.
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    // DefaultScheme = JWT
+    // This means HttpContext.User for protected endpoints will expect a JWT token 
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme; 
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     //options.DefaultForbidScheme =
     //options.DefaultScheme =
     //options.DefaultSignInScheme =
     //options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddCookie()
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    // // DefaultChallengeScheme = Cookie
+    // When Challenge() is called, e.g. for Google login, it uses the cookie scheme to store the state and session during the OAuth flow
+    options.Cookie.SameSite = SameSiteMode.Lax; // or None for HTTPS
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+})
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -89,7 +98,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["JWT:Audience"],
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"])
+        System.Text.Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"])
         )
     };
 })
@@ -98,7 +107,10 @@ builder.Services.AddAuthentication(options =>
     googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
     googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
     googleOptions.CallbackPath = "/api/GoogleAuth/google-response";
+    googleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 });
+// GoogleOptions.SignInScheme = Cookie
+// Very important: the Google middleware uses the cookie scheme to "sign in" the user after a successful login
 
 
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
