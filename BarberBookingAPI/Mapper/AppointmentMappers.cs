@@ -11,8 +11,10 @@ namespace BarberBookingAPI.Mapper
             {
                 Id = appointmentModel.Id,
                 StartTime = appointmentModel.StartTime,
-                EndTime = appointmentModel.EndTime
-               
+                EndTime = appointmentModel.EndTime,
+                ReminderSent = appointmentModel.ReminderSent,
+                ReminderJobId = appointmentModel.ReminderJobId,
+
             };
         }
 
