@@ -1,5 +1,6 @@
 using BarberBookingAPI.Data;
 using BarberBookingAPI.Interfaces;
+using BarberBookingAPI.Jobs;
 using BarberBookingAPI.Models;
 using BarberBookingAPI.Repository;
 using BarberBookingAPI.Service;
@@ -144,6 +145,7 @@ builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IBarberServiceRepository, BarberServiceRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAppointmentReminderJob, AppointmentReminderJob>();
 
 var app = builder.Build();
 
@@ -161,6 +163,12 @@ app.UseAuthentication(); // Enables authentication middleware (JWT and cookies)
 app.UseAuthorization();  // Enables authorization middleware
 
 app.UseHangfireDashboard();
+RecurringJob.AddOrUpdate<AppointmentReminderJob>(
+    "send-appointment-reminders",
+    job => job.SendRemindersAsync(),
+    Cron.Hourly
+);
+
 
 app.MapControllers();
 
