@@ -1,3 +1,4 @@
+
 # 💈 BarberBookingAPI
 
 BarberBookingAPI is an ASP.NET Core Web API project for booking appointments in a barbershop. It supports user registration and login, JWT authentication, role-based authorization, sending email confirmations, and includes Single Sign-On (SSO) via Google. The application is structured using Clean Architecture principles and follows security best practices by separating sensitive configuration.
@@ -27,20 +28,22 @@ The project follows **Clean Architecture** principles:
 ```
 BarberBookingAPI/
 │
-├── Controllers/              // API controllers (Account, Appointments, Auth, Services)
+├── Controllers/              // API controllers (Account, Appointments, Auth, Services, TestJob)
 ├── Data/                     // ApplicationDBContext (EF Core)
 ├── DTOs/                     // Data Transfer Objects (DTOs)
 │   ├── Account/
 │   ├── Appointment/
 │   └── BarberService/
 ├── Helpers/                  // Query objects (for pagination/filtering)
-├── Interfaces/               // Repository and service interfaces
-├── Mapper/                   // Custom mapping classes
-├── Migrations/               // EF Core migrations
-├── Models/                   // Entity models
-├── Repository/               // Repository implementations
-├── Service/                  // Email, Token, Background jobs (Hangfire)
-├── appsettings.json          // General configuration
+├── Interfaces/              // Repository and service interfaces
+├── Mapper/                  // Custom mapping classes
+├── Migrations/              // EF Core migrations
+├── Models/                  // Entity models
+├── Repository/              // Repository implementations
+├── Service/                 // Email, Token, Background jobs (Hangfire)
+├── Jobs/                    // Hangfire job implementations
+├── Logs/                    // Hangfire job logs (optional)
+├── appsettings.json         // General configuration
 ├── appsettings.Development.json // Development secrets (excluded from Git)
 ```
 
@@ -80,9 +83,22 @@ A confirmation email is sent when an appointment is created.
 
 ---
 
-## 🔄 Background Jobs with Hangfire
+## ⏰ Appointment Reminder (Scheduled Job with Hangfire)
 
-Hangfire is used to schedule and execute background jobs, such as sending delayed email notifications or performing cleanup tasks asynchronously.
+- Implemented background job that sends email reminders **1 hour before** the scheduled appointment.
+- Used **Hangfire** to schedule and execute the job.
+- Reminder includes the appointment details and is sent only if the start time is in the future.
+- The job is scheduled automatically after an appointment is created.
+- The reminder job ID is stored in the database.
+
+✅ The job was tested manually using Hangfire Dashboard and via a dedicated controller for test endpoints.
+
+---
+
+## 🧪 TestJobController
+
+- Created a separate `TestJobController` to isolate all testing endpoints from production logic.
+- Allows manual execution and scheduling of reminder jobs.
 
 ---
 
@@ -179,5 +195,4 @@ dotnet ef database update
 ## 🙌 Author
 
 - 👩 Sonja Divac (2025)
-- Project created for showcasing .NET Web API skills with modern design and security practices for a medior developer portfolio.
-
+- Project created to demonstrate .NET Web API skills using modern architecture, testing practices, and background job handling with Hangfire.
