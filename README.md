@@ -97,7 +97,7 @@ A confirmation email is sent when an appointment is created.
 
 ## 🧪 TestJobController
 
-- Created a separate `TestJobController` to isolate all testing endpoints from production logic.
+- Created a separate `TestController` to isolate all testing endpoints from production logic.
 - Allows manual execution and scheduling of reminder jobs.
 
 ---
