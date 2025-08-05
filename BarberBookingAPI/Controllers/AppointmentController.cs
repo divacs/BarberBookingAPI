@@ -2,7 +2,9 @@
 using BarberBookingAPI.DTOs.Apointment;
 using BarberBookingAPI.Helppers;
 using BarberBookingAPI.Interfaces;
+using BarberBookingAPI.Jobs;
 using BarberBookingAPI.Mapper;
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,14 +16,15 @@ namespace BarberBookingAPI.Controllers
     [ApiController]
     public class AppointmentController : ControllerBase
     {
-        private readonly ApplicationDBContext _context;
+        
         private readonly IAppointmentRepository _appointmentRepo;
         private readonly IEmailService _emailService;
-        public AppointmentController(ApplicationDBContext context, IAppointmentRepository appointmentRepo, IEmailService emailService)
+        private readonly IAppointmentReminderJob _appointmentJob;
+        public AppointmentController(IAppointmentRepository appointmentRepo, IEmailService emailService, IAppointmentReminderJob appointmentJob)
         {
-            _context = context;
             _appointmentRepo = appointmentRepo;
             _emailService = emailService;
+            _appointmentJob = appointmentJob;
         }
         [HttpGet]
         [Authorize]
@@ -59,53 +62,7 @@ namespace BarberBookingAPI.Controllers
 
             return Ok(appointment.ToAppointmentDto());
         }
-        [HttpGet("test-email")]
-        public async Task<IActionResult> TestEmail()
-        {
-            string testEmail = "nenadgf@gmail.com";
-            string subject = "Test Email";
-            string body = "<h2>This is a test email from BarberBookingAPI.</h2><p>If you received this, email service works!</p>";
-
-            try
-            {
-                await _emailService.SendEmailAsync(testEmail, subject, body);
-                return Ok("✅ Test email sent successfully to sonja.divac.com.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
-            }
-        }
-        //[HttpGet("send-multiple-emails")]
-        //public async Task<IActionResult> SendMultipleEmails()
-        //{
-        //    var recipients = new List<string>
-        //    {
-        //        "aleksandar.zivkovic@stech.rs",
-        //        "aleksandra.carevic@stech.rs",
-        //        "marija.ristic@stech.rs",
-        //        "sonja.divac@yahoo.com"
-        //    };
-
-        //    string subject = "Test Email";
-        //    string body = "<h2>GDE ME VODITE U UTORAK ??? </h2>";
-
-        //    try
-        //    {
-        //        foreach (var email in recipients)
-        //        {
-        //            await _emailService.SendEmailAsync(email, subject, body);
-        //        }
-
-        //        return Ok("✅ Emails sent successfully to all recipients.");
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
-        //    }
-        //}
-
-
+        
 
         [HttpPost]
         [Authorize]
@@ -115,10 +72,12 @@ namespace BarberBookingAPI.Controllers
                 return BadRequest(ModelState);
 
             var appointmentModel = appointmentDto.ToAppointmentFromCreateDto();
-
             await _appointmentRepo.CreateAsync(appointmentModel);
 
-            var user = await _context.Users.FindAsync(appointmentModel.ApplicationUserId);
+            // appointmentModel.Id now exists because it has been saved
+
+            // Send confirmation to the user (email)
+            var user = await _appointmentJob.GetUserByIdAsync(appointmentModel.ApplicationUserId);
             if (user != null)
             {
                 await _emailService.SendEmailAsync(
@@ -128,37 +87,85 @@ namespace BarberBookingAPI.Controllers
                 );
             }
 
+            // Schedule a reminder job 1 hour before the startTime, if it’s in the future
+            var reminderTime = appointmentModel.StartTime.AddHours(-1);
+            if (reminderTime > DateTime.UtcNow)
+            {
+                var jobId = BackgroundJob.Schedule<AppointmentReminderJob>(
+                    job => job.SendReminderAsync(appointmentModel.Id),
+                    reminderTime - DateTime.UtcNow
+                );
+
+                // Update the appointment with the ReminderJobId
+                appointmentModel.ReminderJobId = jobId;
+                appointmentModel.ReminderSent = false;
+
+                // Since we already have CreateAsync that saves the appointment,
+                // now we need to update it to save the jobId in the database
+                // We need to update the appointment with ReminderJobId and ReminderSent
+                await _appointmentRepo.UpdateReminderJobIdAsync(appointmentModel.Id, jobId);
+            }
+
             return CreatedAtAction(nameof(GetById), new { id = appointmentModel.Id }, appointmentModel.ToAppointmentDto());
         }
 
-        [HttpPut]
-        [Route("{id:int}")]
+        [HttpPut("{id:int}")]
         [Authorize]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateAppointmentRequestDto appointmentDto)
         {
             if (appointmentDto == null)
-            {
                 return BadRequest("Appointment data is required.");
-            }
-            var existingAppointment = await _appointmentRepo.UpdateAsync(id, appointmentDto);
-            if (existingAppointment == null)
-            {
+
+            var appointment = await _appointmentRepo.GetByIdAsync(id);
+            if (appointment == null)
                 return NotFound();
+
+            // Cancel old job if exists
+            if (!string.IsNullOrEmpty(appointment.ReminderJobId))
+            {
+                BackgroundJob.Delete(appointment.ReminderJobId);
+                appointment.ReminderJobId = null;
             }
-       
-            return Ok(existingAppointment.ToAppointmentDto());
+
+            // Update fields
+            appointment.StartTime = appointmentDto.StartTime;
+            appointment.EndTime = appointmentDto.EndTime;
+            appointment.BarberServiceId = appointmentDto.BarberServiceId;
+            appointment.ReminderSent = false;
+
+            // Schedule new job
+            var reminderTime = appointment.StartTime.AddHours(-1);
+            if (reminderTime > DateTime.UtcNow)
+            {
+                var jobId = BackgroundJob.Schedule<AppointmentReminderJob>(
+                    job => job.SendReminderAsync(appointment.Id),
+                    reminderTime - DateTime.UtcNow
+                );
+
+                appointment.ReminderJobId = jobId;
+            }
+
+            await _appointmentJob.SaveAsync();
+
+            return Ok(appointment.ToAppointmentDto());
         }
 
-        [HttpDelete]
-        [Route("{id:int}")]
+
+        [HttpDelete("{id:int}")]
         [Authorize]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var appointment = await _appointmentRepo.DeleteAsync(id);
+            var appointment = await _appointmentRepo.GetByIdAsync(id);
             if (appointment == null)
-            {
                 return NotFound();
+
+            // Cancel scheduled reminder job
+            if (!string.IsNullOrEmpty(appointment.ReminderJobId))
+            {
+                BackgroundJob.Delete(appointment.ReminderJobId);
             }
+
+            await _appointmentRepo.DeleteAsync(id);
 
             return NoContent();
         }

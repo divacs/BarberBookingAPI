@@ -11,5 +11,6 @@ namespace BarberBookingAPI.Interfaces
         Task<Appointment> CreateAsync (Appointment appointmentModel);
         Task<Appointment?> UpdateAsync(int id, UpdateAppointmentRequestDto appointmentDto);
         Task<Appointment?> DeleteAsync(int id);
+        Task UpdateReminderJobIdAsync(int appointmentId, string jobId);
     }
 }

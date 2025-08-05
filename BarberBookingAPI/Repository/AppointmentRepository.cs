@@ -65,5 +65,16 @@ namespace BarberBookingAPI.Repository
 
             return existingAppointment;
         }
+        public async Task UpdateReminderJobIdAsync(int appointmentId, string jobId)
+        {
+            var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
+            if (appointment == null) return;
+
+            appointment.ReminderJobId = jobId;
+            appointment.ReminderSent = false;
+
+            await _context.SaveChangesAsync();
+        }
+
     }
 }
