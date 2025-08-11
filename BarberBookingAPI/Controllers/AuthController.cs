@@ -88,7 +88,7 @@ namespace BarberBookingAPI.Controllers
             }
 
             // 3. Generate JWT token
-            var token = _tokenService.CreateToken(user);
+            var token = _tokenService.CreateTokenAsync(user);
 
             // 4. Return JWT token as JSON
             return Ok(new

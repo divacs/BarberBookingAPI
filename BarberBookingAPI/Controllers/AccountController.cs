@@ -4,6 +4,7 @@ using BarberBookingAPI.DTOs.Apointment;
 using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Mapper;
 using BarberBookingAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -63,7 +64,7 @@ namespace BarberBookingAPI.Controllers
                     {
                         UserName = appUser.UserName,
                         Email = appUser.Email,
-                        Token = _tokenService.CreateToken(appUser)
+                        Token = await _tokenService.CreateTokenAsync(appUser)
                     }
                 );
             }
@@ -97,7 +98,7 @@ namespace BarberBookingAPI.Controllers
                     { 
                         UserName = user.UserName,
                         Email = user.Email,
-                        Token = _tokenService.CreateToken(user)
+                        Token = await _tokenService.CreateTokenAsync(user)
                     }
                  );
 
@@ -107,5 +108,63 @@ namespace BarberBookingAPI.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
+        [HttpGet("workers")]
+        [Authorize] 
+        public async Task<IActionResult> GetAllWorkers()
+        {
+            var workers = await _userManager.GetUsersInRoleAsync("Worker");
+
+            
+            var workersDto = workers.Select(w => new
+            {
+                w.FullName
+            }).ToList();
+
+            return Ok(workersDto);
+        }
+        [HttpPost("assign-role")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AssignRole([FromBody] AssignRoleDto assignRoleDto)
+        {
+            try
+            {
+                var user = await _userManager.FindByNameAsync(assignRoleDto.Username);
+                if (user == null)
+                    return NotFound("User not found");
+
+                // Remove user from all roles if needed
+                var currentRoles = await _userManager.GetRolesAsync(user);
+                var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                if (!removeResult.Succeeded)
+                    return StatusCode(500, removeResult.Errors);
+
+                // Assing new role
+                var addResult = await _userManager.AddToRoleAsync(user, assignRoleDto.Role);
+                if (!addResult.Succeeded)
+                    return StatusCode(500, addResult.Errors);
+
+                return Ok($"Role '{assignRoleDto.Role}' assigned to user '{assignRoleDto.Username}'.");
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { error = e.Message });
+            }
+        }
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            var user = await _userManager.FindByNameAsync(dto.UserName);
+            if (user == null) return NotFound("User not found");
+
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            var result = await _userManager.ResetPasswordAsync(user, resetToken, dto.NewPassword);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok("Password has been reset.");
+        }
+
     }
 }

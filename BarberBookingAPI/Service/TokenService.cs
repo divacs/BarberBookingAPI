@@ -1,5 +1,6 @@
 ﻿using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -11,19 +12,30 @@ namespace BarberBookingAPI.Service
     {
         private readonly IConfiguration _config;
         private readonly SymmetricSecurityKey _key;
-        public TokenService(IConfiguration config)
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        public TokenService(IConfiguration config, UserManager<ApplicationUser> userManager)
         {
-            // Constructor that initializes the TokenService with a configuration object
             _config = config;
+            _userManager = userManager;
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT:SigningKey"]));
         }
-        public string CreateToken(ApplicationUser user)
+        public async Task<string> CreateTokenAsync(ApplicationUser user)
         {
             var claims = new List<Claim>
             {                
                 new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty), // Email claim for the user
                 new Claim(JwtRegisteredClaimNames.GivenName, user.UserName),  // Username claim for the user
+
             };
+            // adding roles clame to the jwt token
+            var roles = await _userManager.GetRolesAsync(user);
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+            // Add a unique token identifier (JTI) to distinguish this token instance and support potential token revocation or tracking
+            claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
 
             var creds = new SigningCredentials(_key, SecurityAlgorithms.HmacSha512Signature);
 
@@ -43,5 +55,6 @@ namespace BarberBookingAPI.Service
 
             return tokenHandler.WriteToken(token); // Write the token to a string and return it
         }
+
     }
 }

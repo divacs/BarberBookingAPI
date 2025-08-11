@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using System.Security.Claims;
 using System.Text;
 
 // Configure Serilog for logging to console and file
@@ -105,16 +106,14 @@ builder.Services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidIssuer = builder.Configuration["JWT:Issuer"],
-
         ValidateAudience = true,
-        ValidAudience = builder.Configuration["JWT:Audience"],
-
+        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JWT:Issuer"],
+        ValidAudience = builder.Configuration["JWT:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"])),
 
-        ValidateLifetime = true, // Validate token expiration
-        ClockSkew = TimeSpan.Zero
+        RoleClaimType = ClaimTypes.Role 
     };
 })
 // Add Cookie authentication required for Google OAuth flow
