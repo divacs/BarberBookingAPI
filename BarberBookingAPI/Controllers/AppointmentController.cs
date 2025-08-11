@@ -89,16 +89,23 @@ namespace BarberBookingAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // if DUration is not sent, take Duration from BarberService
-            int duration;
-
-            duration = appointmentDto.Duration;
-
+            int duration = appointmentDto.Duration;
 
             // Calculate EndTime
             var endTime = appointmentDto.StartTime.AddMinutes(duration);
 
-            // Covert DTO i model, but we have to send EndTime
+            // Check for overlapping appointments
+            var existingAppointments = await _appointmentRepo.GetByDateAsync(appointmentDto.StartTime.Date);
+            bool isOverlapping = existingAppointments.Any(a =>
+                appointmentDto.StartTime < a.EndTime && endTime > a.StartTime
+            );
+
+            if (isOverlapping)
+            {
+                return BadRequest("Cannot schedule the appointment because it conflicts with another booking.");
+            }
+
+            // Convert DTO to model
             var appointmentModel = appointmentDto.ToAppointmentFromCreateDto();
             appointmentModel.EndTime = endTime;
 
@@ -143,6 +150,22 @@ namespace BarberBookingAPI.Controllers
             if (appointment == null)
                 return NotFound();
 
+            // Calculate EndTime
+            var endTime = appointmentDto.StartTime.AddMinutes(
+                (appointmentDto.EndTime - appointmentDto.StartTime).TotalMinutes
+            );
+
+            // Check for overlapping appointments (excluding current one)
+            var existingAppointments = await _appointmentRepo.GetByDateAsync(appointmentDto.StartTime.Date);
+            bool isOverlapping = existingAppointments
+                .Where(a => a.Id != id) // exclude current appointment
+                .Any(a => appointmentDto.StartTime < a.EndTime && endTime > a.StartTime);
+
+            if (isOverlapping)
+            {
+                return BadRequest("Cannot schedule the appointment because it conflicts with another booking.");
+            }
+
             // Cancel old job if exists
             if (!string.IsNullOrEmpty(appointment.ReminderJobId))
             {
@@ -152,7 +175,7 @@ namespace BarberBookingAPI.Controllers
 
             // Update fields
             appointment.StartTime = appointmentDto.StartTime;
-            appointment.EndTime = appointmentDto.EndTime;
+            appointment.EndTime = endTime;
             appointment.BarberServiceId = appointmentDto.BarberServiceId;
             appointment.ReminderSent = false;
 
@@ -172,7 +195,6 @@ namespace BarberBookingAPI.Controllers
 
             return Ok(appointment.ToAppointmentDto());
         }
-
 
         [HttpDelete("{id:int}")]
         [Authorize]

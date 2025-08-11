@@ -14,6 +14,19 @@ namespace BarberBookingAPI.Repository
             _context = context;
         }
 
+        public async Task<bool> AppointmentExistsInRangeAsync(DateTime startTime, DateTime endTime, int barberServiceId)
+        {
+            return await _context.Appointments
+                .AnyAsync(a =>
+                    a.BarberServiceId == barberServiceId &&
+                    (
+                        (startTime >= a.StartTime && startTime < a.EndTime) || // new starts in current
+                        (endTime > a.StartTime && endTime <= a.EndTime) ||     // new ends in current 
+                        (startTime <= a.StartTime && endTime >= a.EndTime)     // new is whole in current
+                    )
+                );
+        }
+
         public async Task<Appointment> CreateAsync(Appointment appointmentModel)
         {
             await _context.Appointments.AddAsync(appointmentModel);
