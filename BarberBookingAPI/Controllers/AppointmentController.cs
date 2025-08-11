@@ -65,6 +65,22 @@ namespace BarberBookingAPI.Controllers
 
             return Ok(appointment.ToAppointmentDto());
         }
+        [HttpGet("by-date")]
+        [Authorize]
+        public async Task<IActionResult> GetByDate([FromQuery] DateTime date)
+        {
+            if (date == default)
+                return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+
+            var appointments = await _appointmentRepo.GetByDateAsync(date);
+
+            if (!appointments.Any())
+                return NotFound($"No appointments found for {date:yyyy-MM-dd}.");
+
+            var appointmentDtos = appointments.Select(a => a.ToAppointmentDto());
+
+            return Ok(appointmentDtos);
+        }
 
         [HttpPost]
         [Authorize]

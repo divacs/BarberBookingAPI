@@ -46,6 +46,13 @@ namespace BarberBookingAPI.Repository
                 .ToListAsync();                   // Convert to a list asynchronously
         }
 
+        public async Task<IEnumerable<Appointment>> GetByDateAsync(DateTime date)
+        {
+            return await _context.Appointments
+                .Where(a => a.StartTime.Date == date.Date)
+                .ToListAsync();
+        }
+
         public async Task<Appointment?> GetByIdAsync(int id)
         {
             return await _context.Appointments.FindAsync(id);
