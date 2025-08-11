@@ -16,6 +16,7 @@ namespace BarberBookingAPI.Data
         public DbSet<Appointment> Appointments { get; set; } // DbSet for appointments
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            // seeding the Roles table
             base.OnModelCreating(builder);
 
             List<IdentityRole> roles = new List<IdentityRole>
@@ -29,6 +30,11 @@ namespace BarberBookingAPI.Data
                 {
                     Name = "User",
                     NormalizedName = "USER"
+                },
+                new IdentityRole
+                {
+                    Name = "Worker",
+                    NormalizedName = "WORKER"
                 },
             };
             builder.Entity<IdentityRole>().HasData(roles);
