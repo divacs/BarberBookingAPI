@@ -1,4 +1,5 @@
 ﻿using BarberBookingAPI.DTOs.Apointment;
+using BarberBookingAPI.DTOs.Appointment;
 using BarberBookingAPI.Models;
 
 namespace BarberBookingAPI.Mapper
@@ -23,7 +24,6 @@ namespace BarberBookingAPI.Mapper
             return new Appointment
             {
                 StartTime = appointmentDto.StartTime,
-                EndTime = appointmentDto.EndTime,
                 ApplicationUserId = appointmentDto.ApplicationUserId ?? string.Empty,
                 BarberServiceId = appointmentDto.BarberServiceId
             };

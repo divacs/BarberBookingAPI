@@ -1,5 +1,6 @@
 ﻿using BarberBookingAPI.Data;
 using BarberBookingAPI.DTOs.Apointment;
+using BarberBookingAPI.DTOs.Appointment;
 using BarberBookingAPI.Helppers;
 using BarberBookingAPI.Interfaces;
 using BarberBookingAPI.Jobs;
@@ -20,11 +21,13 @@ namespace BarberBookingAPI.Controllers
         private readonly IAppointmentRepository _appointmentRepo;
         private readonly IEmailService _emailService;
         private readonly IAppointmentReminderJob _appointmentJob;
-        public AppointmentController(IAppointmentRepository appointmentRepo, IEmailService emailService, IAppointmentReminderJob appointmentJob)
+        private readonly IBarberServiceRepository _barberServiceRepo;
+        public AppointmentController(IAppointmentRepository appointmentRepo, IEmailService emailService, IAppointmentReminderJob appointmentJob, IBarberServiceRepository barberServiceRepo)
         {
             _appointmentRepo = appointmentRepo;
             _emailService = emailService;
             _appointmentJob = appointmentJob;
+            _barberServiceRepo = barberServiceRepo;
         }
         [HttpGet]
         [Authorize]
@@ -62,7 +65,6 @@ namespace BarberBookingAPI.Controllers
 
             return Ok(appointment.ToAppointmentDto());
         }
-        
 
         [HttpPost]
         [Authorize]
@@ -71,12 +73,21 @@ namespace BarberBookingAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            // if DUration is not sent, take Duration from BarberService
+            int duration;
+
+            duration = appointmentDto.Duration;
+
+
+            // Calculate EndTime
+            var endTime = appointmentDto.StartTime.AddMinutes(duration);
+
+            // Covert DTO i model, but we have to send EndTime
             var appointmentModel = appointmentDto.ToAppointmentFromCreateDto();
+            appointmentModel.EndTime = endTime;
+
             await _appointmentRepo.CreateAsync(appointmentModel);
 
-            // appointmentModel.Id now exists because it has been saved
-
-            // Send confirmation to the user (email)
             var user = await _appointmentJob.GetUserByIdAsync(appointmentModel.ApplicationUserId);
             if (user != null)
             {
@@ -87,7 +98,6 @@ namespace BarberBookingAPI.Controllers
                 );
             }
 
-            // Schedule a reminder job 1 hour before the startTime, if it’s in the future
             var reminderTime = appointmentModel.StartTime.AddHours(-1);
             if (reminderTime > DateTime.UtcNow)
             {
@@ -96,18 +106,15 @@ namespace BarberBookingAPI.Controllers
                     reminderTime - DateTime.UtcNow
                 );
 
-                // Update the appointment with the ReminderJobId
                 appointmentModel.ReminderJobId = jobId;
                 appointmentModel.ReminderSent = false;
 
-                // Since we already have CreateAsync that saves the appointment,
-                // now we need to update it to save the jobId in the database
-                // We need to update the appointment with ReminderJobId and ReminderSent
                 await _appointmentRepo.UpdateReminderJobIdAsync(appointmentModel.Id, jobId);
             }
 
             return CreatedAtAction(nameof(GetById), new { id = appointmentModel.Id }, appointmentModel.ToAppointmentDto());
         }
+
 
         [HttpPut("{id:int}")]
         [Authorize]
