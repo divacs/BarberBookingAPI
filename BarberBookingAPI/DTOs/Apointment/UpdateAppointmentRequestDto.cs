@@ -8,7 +8,7 @@ namespace BarberBookingAPI.DTOs.Apointment
         public DateTime StartTime { get; set; } // Start time of the appointment
 
         [Required]
-        public DateTime EndTime { get; set; } // End time of the appointment
+        public int Duration { get; set; } // End time of the appointment
 
 
         public string ApplicationUserId { get; set; } = string.Empty;

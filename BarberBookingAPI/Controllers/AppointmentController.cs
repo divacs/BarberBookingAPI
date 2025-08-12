@@ -89,6 +89,11 @@ namespace BarberBookingAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            if (appointmentDto.Duration <= 0)
+            {
+                return BadRequest("Duration must be greater than zero.");
+            }
+
             int duration = appointmentDto.Duration;
 
             // Calculate EndTime
@@ -150,10 +155,14 @@ namespace BarberBookingAPI.Controllers
             if (appointment == null)
                 return NotFound();
 
+            if (appointmentDto.Duration <= 0)
+            {
+                return BadRequest("Duration must be greater than zero.");
+            }
+
             // Calculate EndTime
-            var endTime = appointmentDto.StartTime.AddMinutes(
-                (appointmentDto.EndTime - appointmentDto.StartTime).TotalMinutes
-            );
+            int duration = appointmentDto.Duration;
+            var endTime = appointmentDto.StartTime.AddMinutes(duration);
 
             // Check for overlapping appointments (excluding current one)
             var existingAppointments = await _appointmentRepo.GetByDateAsync(appointmentDto.StartTime.Date);
