@@ -21,7 +21,7 @@ namespace BarberBookingAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll()
         {
             var barberService = await _barberServiceRepo.GetAllAsnc();
@@ -31,7 +31,7 @@ namespace BarberBookingAPI.Controllers
             return Ok(barberService);
         }
         [HttpGet("pagination")]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
         {
             var barberService = await _barberServiceRepo.GetAllAsync(query.PageNumber, query.PageSize);
@@ -41,7 +41,7 @@ namespace BarberBookingAPI.Controllers
             return Ok(barberService);
         }
         [HttpGet("{id:int}")]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
             if (!ModelState.IsValid)
@@ -57,7 +57,7 @@ namespace BarberBookingAPI.Controllers
             return Ok(barberService.ToBarberServiceDto());
         }
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateBarberServiceRequestDto barberServiceDto)
         {
             if (!ModelState.IsValid)
@@ -71,7 +71,7 @@ namespace BarberBookingAPI.Controllers
         }
         [HttpPut]
         [Route("{id:int}")]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] DTOs.BarberService.UpdateBarberServiceRequestDto barberServiceDto)
         {
             if (barberServiceDto == null)
@@ -89,7 +89,7 @@ namespace BarberBookingAPI.Controllers
         }
         [HttpDelete]
         [Route("{id}")]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
             var barberService = await _barberServiceRepo.DeleteAsync(id);
