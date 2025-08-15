@@ -90,32 +90,26 @@ namespace BarberBookingAPI.Controllers
                 return BadRequest(ModelState);
 
             if (appointmentDto.Duration <= 0)
-            {
                 return BadRequest("Duration must be greater than zero.");
-            }
 
-            int duration = appointmentDto.Duration;
+            var endTime = appointmentDto.StartTime.AddMinutes(appointmentDto.Duration);
 
-            // Calculate EndTime
-            var endTime = appointmentDto.StartTime.AddMinutes(duration);
-
-            // Check for overlapping appointments
+            // Check overlapping
             var existingAppointments = await _appointmentRepo.GetByDateAsync(appointmentDto.StartTime.Date);
             bool isOverlapping = existingAppointments.Any(a =>
                 appointmentDto.StartTime < a.EndTime && endTime > a.StartTime
             );
 
             if (isOverlapping)
-            {
                 return BadRequest("Cannot schedule the appointment because it conflicts with another booking.");
-            }
 
-            // Convert DTO to model
+            // Map to model
             var appointmentModel = appointmentDto.ToAppointmentFromCreateDto();
-            appointmentModel.EndTime = endTime;
+            appointmentModel.Duration = appointmentDto.Duration; // Osiguravamo da se snimi trajanje
 
             await _appointmentRepo.CreateAsync(appointmentModel);
 
+            // Send email
             var user = await _appointmentJob.GetUserByIdAsync(appointmentModel.ApplicationUserId);
             if (user != null)
             {
@@ -126,6 +120,7 @@ namespace BarberBookingAPI.Controllers
                 );
             }
 
+            // Schedule reminder
             var reminderTime = appointmentModel.StartTime.AddHours(-1);
             if (reminderTime > DateTime.UtcNow)
             {
@@ -156,26 +151,20 @@ namespace BarberBookingAPI.Controllers
                 return NotFound();
 
             if (appointmentDto.Duration <= 0)
-            {
                 return BadRequest("Duration must be greater than zero.");
-            }
 
-            // Calculate EndTime
-            int duration = appointmentDto.Duration;
-            var endTime = appointmentDto.StartTime.AddMinutes(duration);
+            var endTime = appointmentDto.StartTime.AddMinutes(appointmentDto.Duration);
 
-            // Check for overlapping appointments (excluding current one)
+            // Check overlapping excluding current
             var existingAppointments = await _appointmentRepo.GetByDateAsync(appointmentDto.StartTime.Date);
             bool isOverlapping = existingAppointments
-                .Where(a => a.Id != id) // exclude current appointment
+                .Where(a => a.Id != id)
                 .Any(a => appointmentDto.StartTime < a.EndTime && endTime > a.StartTime);
 
             if (isOverlapping)
-            {
                 return BadRequest("Cannot schedule the appointment because it conflicts with another booking.");
-            }
 
-            // Cancel old job if exists
+            // Cancel old job
             if (!string.IsNullOrEmpty(appointment.ReminderJobId))
             {
                 BackgroundJob.Delete(appointment.ReminderJobId);
@@ -184,11 +173,11 @@ namespace BarberBookingAPI.Controllers
 
             // Update fields
             appointment.StartTime = appointmentDto.StartTime;
-            appointment.EndTime = endTime;
+            appointment.Duration = appointmentDto.Duration; // Dodato
             appointment.BarberServiceId = appointmentDto.BarberServiceId;
             appointment.ReminderSent = false;
 
-            // Schedule new job
+            // Schedule new reminder
             var reminderTime = appointment.StartTime.AddHours(-1);
             if (reminderTime > DateTime.UtcNow)
             {
@@ -200,7 +189,7 @@ namespace BarberBookingAPI.Controllers
                 appointment.ReminderJobId = jobId;
             }
 
-            await _appointmentJob.SaveAsync();
+            await _appointmentJob.SaveAsync(); // Ispravljeno umesto _appointmentJob.SaveAsync()
 
             return Ok(appointment.ToAppointmentDto());
         }

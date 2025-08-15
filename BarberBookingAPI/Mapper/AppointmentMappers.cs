@@ -4,7 +4,7 @@ using BarberBookingAPI.Models;
 
 namespace BarberBookingAPI.Mapper
 {
-    public static class AppointmentMappers 
+    public static class AppointmentMappers
     {
         public static AppointmentDto ToAppointmentDto(this Appointment appointmentModel)
         {
@@ -12,10 +12,10 @@ namespace BarberBookingAPI.Mapper
             {
                 Id = appointmentModel.Id,
                 StartTime = appointmentModel.StartTime,
-                EndTime = appointmentModel.EndTime,
+                Duration = appointmentModel.Duration,
+                //EndTime = appointmentModel.EndTime, 
                 ReminderSent = appointmentModel.ReminderSent,
-                ReminderJobId = appointmentModel.ReminderJobId,
-
+                ReminderJobId = appointmentModel.ReminderJobId
             };
         }
 
@@ -24,6 +24,7 @@ namespace BarberBookingAPI.Mapper
             return new Appointment
             {
                 StartTime = appointmentDto.StartTime,
+                Duration = appointmentDto.Duration, // Dodato
                 ApplicationUserId = appointmentDto.ApplicationUserId ?? string.Empty,
                 BarberServiceId = appointmentDto.BarberServiceId
             };

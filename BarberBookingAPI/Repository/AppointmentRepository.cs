@@ -77,7 +77,7 @@ namespace BarberBookingAPI.Repository
             var existingAppointment = await _context.Appointments.FirstOrDefaultAsync(x => x.Id == id);
 
             existingAppointment.StartTime = appointmentDto.StartTime;
-            existingAppointment.EndTime = appointmentDto.EndTime;
+            existingAppointment.Duration = appointmentDto.Duration;
             existingAppointment.ApplicationUserId = appointmentDto.ApplicationUserId;
             existingAppointment.BarberServiceId = appointmentDto.BarberServiceId;
 

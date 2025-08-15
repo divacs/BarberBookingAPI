@@ -7,16 +7,17 @@ namespace BarberBookingAPI.DTOs.Apointment
         public int Id { get; set; }
         [Required]
         public DateTime StartTime { get; set; } // Start time of the appointment
-
         [Required]
-        public DateTime EndTime { get; set; } // End time of the appointment
+        public int Duration { get; set; } // Duration in minutes
+        public DateTime EndTime => StartTime.AddMinutes(Duration); 
         public bool ReminderSent { get; set; } = false;
         public string? ReminderJobId { get; set; }
 
 
         // Custom validation to ensure the appointment is within working hours
+        
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-        {
+        {           
             var opening = new TimeSpan(10, 0, 0);  // 10:00 AM
             var closing = new TimeSpan(20, 0, 0);  // 8:00 PM
 

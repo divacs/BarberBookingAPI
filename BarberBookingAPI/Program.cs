@@ -165,7 +165,7 @@ app.UseHangfireDashboard();
 RecurringJob.AddOrUpdate<AppointmentReminderJob>(
     "send-appointment-reminders",
     job => job.SendRemindersAsync(),
-    Cron.Hourly
+    Cron.Minutely
 );
 
 
