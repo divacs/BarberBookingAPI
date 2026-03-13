@@ -59,9 +59,11 @@ namespace BarberBookingAPI.Controllers
             var appointment = await _appointmentRepo.GetByIdAsync(id);
 
             if (appointment == null)
-            {
                 return NotFound();
-            }
+
+            // Verify ownership
+            if (appointment.ApplicationUserId != User.Identity.Name)
+                return Forbid("You do not have permission to access this appointment.");
 
             return Ok(appointment.ToAppointmentDto());
         }
@@ -150,6 +152,10 @@ namespace BarberBookingAPI.Controllers
             if (appointment == null)
                 return NotFound();
 
+            // Verify ownership
+            if (appointment.ApplicationUserId != User.Identity.Name)
+                return Forbid("You do not have permission to update this appointment.");
+
             if (appointmentDto.Duration <= 0)
                 return BadRequest("Duration must be greater than zero.");
 
@@ -173,7 +179,7 @@ namespace BarberBookingAPI.Controllers
 
             // Update fields
             appointment.StartTime = appointmentDto.StartTime;
-            appointment.Duration = appointmentDto.Duration; // Dodato
+            appointment.Duration = appointmentDto.Duration;
             appointment.BarberServiceId = appointmentDto.BarberServiceId;
             appointment.ReminderSent = false;
 
@@ -201,6 +207,10 @@ namespace BarberBookingAPI.Controllers
             var appointment = await _appointmentRepo.GetByIdAsync(id);
             if (appointment == null)
                 return NotFound();
+
+            // Verify ownership
+            if (appointment.ApplicationUserId != User.Identity.Name)
+                return Forbid("You do not have permission to delete this appointment.");
 
             // Cancel scheduled reminder job
             if (!string.IsNullOrEmpty(appointment.ReminderJobId))

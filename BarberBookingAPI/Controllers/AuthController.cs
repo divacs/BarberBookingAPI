@@ -88,13 +88,13 @@ namespace BarberBookingAPI.Controllers
             }
 
             // 3. Generate JWT token
-            var token = _tokenService.CreateTokenAsync(user);
+            var token = await _tokenService.CreateTokenAsync(user); // Added await here
 
             // 4. Return JWT token as JSON
             return Ok(new
             {
                 message = "Google login successful",
-                token
+                token // This now contains the resolved JWT string
             });
         }
     }

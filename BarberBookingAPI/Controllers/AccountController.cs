@@ -150,21 +150,24 @@ namespace BarberBookingAPI.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
-        {
-            var user = await _userManager.FindByNameAsync(dto.UserName);
-            if (user == null) return NotFound("User not found");
+        
+            [Authorize] // Added authorization to secure the endpoint
+            [HttpPost("reset-password")]
+            public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+            {
+                var user = await _userManager.FindByNameAsync(dto.UserName);
+                if (user == null) 
+                    return NotFound("User not found");
 
-            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            var result = await _userManager.ResetPasswordAsync(user, resetToken, dto.NewPassword);
+                var result = await _userManager.ResetPasswordAsync(user, resetToken, dto.NewPassword);
 
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
+                if (!result.Succeeded)
+                    return BadRequest(result.Errors);
 
-            return Ok("Password has been reset.");
-        }
+                return Ok("Password has been reset.");
+            }
 
     }
 }
