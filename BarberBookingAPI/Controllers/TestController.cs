@@ -1,25 +1,34 @@
 ﻿using BarberBookingAPI.Interfaces;
 using Hangfire;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberBookingAPI.Controllers
 {
     [Route("api/TestJob")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class TestController : ControllerBase
     {
         private readonly IAppointmentRepository _appointmentRepo;
         private readonly IEmailService _emailService;
         private readonly IAppointmentReminderJob _appointmentJob;
-        public TestController(IAppointmentRepository appointmentRepo, IEmailService emailService, IAppointmentReminderJob appointmentJob)
+        private readonly IWebHostEnvironment _environment;
+
+        public TestController(IAppointmentRepository appointmentRepo, IEmailService emailService, IAppointmentReminderJob appointmentJob, IWebHostEnvironment environment)
         {
             _appointmentRepo = appointmentRepo;
             _emailService = emailService;
             _appointmentJob = appointmentJob;
+            _environment = environment;
         }
+
         [HttpPost("test-reminder-job")]
         public async Task<IActionResult> TestReminderJob([FromServices] IAppointmentReminderJob reminderJob)
         {
+            if (!_environment.IsDevelopment())
+                return NotFound();
+
             await reminderJob.SendRemindersAsync();
             return Ok("Reminder job executed manually.");
         }
@@ -27,12 +36,19 @@ namespace BarberBookingAPI.Controllers
         [HttpPost("schedule-test-job")]
         public IActionResult ScheduleTestJob([FromServices] IAppointmentReminderJob reminderJob)
         {
+            if (!_environment.IsDevelopment())
+                return NotFound();
+
             var jobId = BackgroundJob.Schedule(() => reminderJob.SendRemindersAsync(), TimeSpan.FromSeconds(10));
             return Ok($"Scheduled job with ID: {jobId}");
         }
+
         [HttpGet("test-email")]
         public async Task<IActionResult> TestEmail()
         {
+            if (!_environment.IsDevelopment())
+                return NotFound();
+
             string testEmail = "nenadgf@gmail.com";
             string subject = "Test Email";
             string body = "<h2>This is a test email from BarberBookingAPI.</h2><p>If you received this, email service works!</p>";
