@@ -5,6 +5,7 @@ using BarberBookingAPI.Models;
 using BarberBookingAPI.Repository;
 using BarberBookingAPI.Service;
 using Hangfire;
+using Hangfire.Dashboard;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -162,7 +163,10 @@ app.UseCookiePolicy();
 app.UseAuthentication(); // Enables authentication middleware (JWT and cookies)
 app.UseAuthorization();  // Enables authorization middleware
 
-app.UseHangfireDashboard();
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireDashboardAuthorizationFilter(app.Environment) }
+});
 RecurringJob.AddOrUpdate<AppointmentReminderJob>(
     "send-appointment-reminders",
     job => job.SendRemindersAsync(),
@@ -180,6 +184,26 @@ app.MapGet("/error", (HttpContext context) =>
 });
 
 app.Run();
+
+public sealed class HangfireDashboardAuthorizationFilter : IDashboardAuthorizationFilter
+{
+    private readonly IWebHostEnvironment _environment;
+
+    public HangfireDashboardAuthorizationFilter(IWebHostEnvironment environment)
+    {
+        _environment = environment;
+    }
+
+    public bool Authorize(DashboardContext context)
+    {
+        if (_environment.IsDevelopment())
+            return true;
+
+        var httpContext = context.GetHttpContext();
+        return httpContext.User.Identity?.IsAuthenticated == true
+            && httpContext.User.IsInRole("Admin");
+    }
+}
 
 public sealed class JwtConfiguration
 {
