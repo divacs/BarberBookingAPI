@@ -25,6 +25,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+var jwtConfiguration = JwtConfigurationValidator.Validate(builder.Configuration);
 
 builder.Host.UseSerilog();
 
@@ -109,9 +110,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["JWT:Issuer"],
-        ValidAudience = builder.Configuration["JWT:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"])),
+        ValidIssuer = jwtConfiguration.Issuer,
+        ValidAudience = jwtConfiguration.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfiguration.SigningKey)),
 
         RoleClaimType = ClaimTypes.Role 
     };
@@ -179,3 +180,81 @@ app.MapGet("/error", (HttpContext context) =>
 });
 
 app.Run();
+
+public sealed class JwtConfiguration
+{
+    public string Issuer { get; init; } = string.Empty;
+    public string Audience { get; init; } = string.Empty;
+    public string SigningKey { get; init; } = string.Empty;
+}
+
+public static class JwtConfigurationValidator
+{
+    private const int MinimumSigningKeyLength = 32;
+
+    public static JwtConfiguration Validate(IConfiguration configuration)
+    {
+        var issuer = GetRequiredValue(configuration, "JWT:Issuer");
+        var audience = GetRequiredValue(configuration, "JWT:Audience");
+        var signingKey = GetRequiredSecretValue(configuration, "JWT:SigningKey");
+
+        if (signingKey.Length < MinimumSigningKeyLength)
+            throw new InvalidOperationException($"Configuration 'JWT:SigningKey' must be at least {MinimumSigningKeyLength} characters long.");
+
+        return new JwtConfiguration
+        {
+            Issuer = issuer,
+            Audience = audience,
+            SigningKey = signingKey
+        };
+    }
+
+    private static string GetRequiredValue(IConfiguration configuration, string key)
+    {
+        var value = configuration[key];
+        if (string.IsNullOrWhiteSpace(value))
+            throw new InvalidOperationException($"Missing required configuration value '{key}'. Use environment variables or user-secrets for secrets.");
+
+        if (LooksLikePlaceholder(value))
+            throw new InvalidOperationException($"Configuration value '{key}' still contains a placeholder. Use environment variables or user-secrets.");
+
+        return value;
+    }
+
+    private static string GetRequiredSecretValue(IConfiguration configuration, string key)
+    {
+        var value = GetRequiredValue(configuration, key);
+
+        if (configuration is not IConfigurationRoot configurationRoot)
+            throw new InvalidOperationException($"Configuration '{key}' source could not be verified. Use environment variables or user-secrets.");
+
+        var winningProvider = configurationRoot.Providers
+            .Reverse()
+            .FirstOrDefault(provider =>
+                provider.TryGet(key, out var providerValue) &&
+                string.Equals(providerValue, value, StringComparison.Ordinal));
+
+        if (winningProvider == null || !IsAllowedSecretProvider(winningProvider))
+            throw new InvalidOperationException($"Configuration '{key}' must be supplied by environment variables or user-secrets, not appsettings files.");
+
+        return value;
+    }
+
+    private static bool IsAllowedSecretProvider(IConfigurationProvider provider)
+    {
+        var providerType = provider.GetType().FullName ?? string.Empty;
+        var providerDescription = provider.ToString() ?? string.Empty;
+
+        return providerType.Contains("EnvironmentVariablesConfigurationProvider", StringComparison.OrdinalIgnoreCase)
+            || providerDescription.Contains("secrets.json", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikePlaceholder(string value)
+    {
+        return value.Contains("REPLACE_", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("YOUR_", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("YOUR-", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("SIGNING_KEY_HERE", StringComparison.OrdinalIgnoreCase);
+    }
+}
