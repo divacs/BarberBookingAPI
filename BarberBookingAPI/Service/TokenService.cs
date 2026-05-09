@@ -24,6 +24,7 @@ namespace BarberBookingAPI.Service
         {
             var claims = new List<Claim>
             {                
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty), // Email claim for the user
                 new Claim(JwtRegisteredClaimNames.GivenName, user.UserName),  // Username claim for the user
 

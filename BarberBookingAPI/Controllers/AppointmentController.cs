@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace BarberBookingAPI.Controllers
 {
@@ -29,12 +30,24 @@ namespace BarberBookingAPI.Controllers
             _appointmentJob = appointmentJob;
             _barberServiceRepo = barberServiceRepo;
         }
+
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> GetAll()
         {
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized("Missing user id claim.");
+
             var appointment = await _appointmentRepo.GetAllAsnc();
-            var appointmentDto = appointment.Select(a => a.ToAppointmentDto());
+            var appointmentDto = appointment
+                .Where(a => a.ApplicationUserId == currentUserId)
+                .Select(a => a.ToAppointmentDto());
 
             return Ok(appointmentDto);
         }
@@ -43,8 +56,16 @@ namespace BarberBookingAPI.Controllers
         [Authorize]
         public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
         {
-            var appointment = await _appointmentRepo.GetAllAsnc(query.PageNumber, query.PageSize); 
-            var appointmentDto = appointment.Select(a => a.ToAppointmentDto());
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized("Missing user id claim.");
+
+            var appointment = await _appointmentRepo.GetAllAsnc();
+            var appointmentDto = appointment
+                .Where(a => a.ApplicationUserId == currentUserId)
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .Select(a => a.ToAppointmentDto());
 
             return Ok(appointmentDto);
         }
@@ -56,14 +77,18 @@ namespace BarberBookingAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized("Missing user id claim.");
+
             var appointment = await _appointmentRepo.GetByIdAsync(id);
 
             if (appointment == null)
                 return NotFound();
 
             // Verify ownership
-            if (appointment.ApplicationUserId != User.Identity.Name)
-                return Forbid("You do not have permission to access this appointment.");
+            if (appointment.ApplicationUserId != currentUserId)
+                return Forbid();
 
             return Ok(appointment.ToAppointmentDto());
         }
@@ -74,7 +99,12 @@ namespace BarberBookingAPI.Controllers
             if (date == default)
                 return BadRequest("Invalid date format. Use yyyy-MM-dd.");
 
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized("Missing user id claim.");
+
             var appointments = await _appointmentRepo.GetByDateAsync(date);
+            appointments = appointments.Where(a => a.ApplicationUserId == currentUserId);
 
             if (!appointments.Any())
                 return NotFound($"No appointments found for {date:yyyy-MM-dd}.");
@@ -90,6 +120,10 @@ namespace BarberBookingAPI.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized("Missing user id claim.");
 
             if (appointmentDto.Duration <= 0)
                 return BadRequest("Duration must be greater than zero.");
@@ -107,6 +141,7 @@ namespace BarberBookingAPI.Controllers
 
             // Map to model
             var appointmentModel = appointmentDto.ToAppointmentFromCreateDto();
+            appointmentModel.ApplicationUserId = currentUserId;
             appointmentModel.Duration = appointmentDto.Duration; // Osiguravamo da se snimi trajanje
 
             await _appointmentRepo.CreateAsync(appointmentModel);
@@ -148,13 +183,17 @@ namespace BarberBookingAPI.Controllers
             if (appointmentDto == null)
                 return BadRequest("Appointment data is required.");
 
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized("Missing user id claim.");
+
             var appointment = await _appointmentRepo.GetByIdAsync(id);
             if (appointment == null)
                 return NotFound();
 
             // Verify ownership
-            if (appointment.ApplicationUserId != User.Identity.Name)
-                return Forbid("You do not have permission to update this appointment.");
+            if (appointment.ApplicationUserId != currentUserId)
+                return Forbid();
 
             if (appointmentDto.Duration <= 0)
                 return BadRequest("Duration must be greater than zero.");
@@ -208,9 +247,13 @@ namespace BarberBookingAPI.Controllers
             if (appointment == null)
                 return NotFound();
 
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized("Missing user id claim.");
+
             // Verify ownership
-            if (appointment.ApplicationUserId != User.Identity.Name)
-                return Forbid("You do not have permission to delete this appointment.");
+            if (appointment.ApplicationUserId != currentUserId)
+                return Forbid();
 
             // Cancel scheduled reminder job
             if (!string.IsNullOrEmpty(appointment.ReminderJobId))
