@@ -9,10 +9,12 @@ namespace BarberBookingAPI.Service
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
 
-        public EmailService(IConfiguration configuration)
+        public EmailService(IConfiguration configuration, IWebHostEnvironment environment)
         {
             _configuration = configuration;
+            _environment = environment;
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
@@ -25,11 +27,15 @@ namespace BarberBookingAPI.Service
 
             using var smtp = new SmtpClient();
 
-            // TEMPORARY: Disable SSL certificate validation (ONLY FOR TESTING)
-            // DO NOT USE THIS IN PRODUCTION - it bypasses important security checks
-            smtp.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
-            //
-            // // END TEMPORARY: Disable SSL certificate validation
+            var allowInvalidCertificatesInDevelopment =
+                _environment.IsDevelopment() &&
+                bool.TryParse(_configuration["EmailSettings:AllowInvalidCertificateInDevelopment"], out var allowInvalidCertificates) &&
+                allowInvalidCertificates;
+
+            if (allowInvalidCertificatesInDevelopment)
+            {
+                smtp.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            }
 
             // Connect to the SMTP server using the settings from configuration
             await smtp.ConnectAsync(
