@@ -151,7 +151,7 @@ namespace BarberBookingAPI.Controllers
             }
         }
         
-            [Authorize] // Added authorization to secure the endpoint
+            [Authorize(Roles = "Admin")] // Added authorization to secure the endpoint
             [HttpPost("reset-password")]
             public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
             {
