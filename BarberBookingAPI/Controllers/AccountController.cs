@@ -20,13 +20,17 @@ namespace BarberBookingAPI.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IEmailService _emailService; 
         private readonly ILogger<AccountController> _logger;
-        public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService, SignInManager<ApplicationUser> signInManager, IEmailService emailService, ILogger<AccountController> logger)
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private static readonly string[] AllowedRoles = { "Admin", "User", "Worker" };
+
+        public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService, SignInManager<ApplicationUser> signInManager, IEmailService emailService, ILogger<AccountController> logger, RoleManager<IdentityRole> roleManager)
         {
             _userManager = userManager;
             _tokenService = tokenService;
             _signInManager = signInManager;
             _emailService = emailService;
             _logger = logger;
+            _roleManager = roleManager;
         }
 
         [HttpPost("register")]
@@ -136,6 +140,11 @@ namespace BarberBookingAPI.Controllers
                 if (user == null)
                     return NotFound("User not found");
 
+                var requestedRole = assignRoleDto.Role?.Trim();
+                var role = AllowedRoles.FirstOrDefault(r => string.Equals(r, requestedRole, StringComparison.OrdinalIgnoreCase));
+                if (role == null || !await _roleManager.RoleExistsAsync(role))
+                    return BadRequest("Invalid role");
+
                 // Remove user from all roles if needed
                 var currentRoles = await _userManager.GetRolesAsync(user);
                 var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
@@ -143,11 +152,11 @@ namespace BarberBookingAPI.Controllers
                     return StatusCode(500, removeResult.Errors);
 
                 // Assing new role
-                var addResult = await _userManager.AddToRoleAsync(user, assignRoleDto.Role);
+                var addResult = await _userManager.AddToRoleAsync(user, role);
                 if (!addResult.Succeeded)
                     return StatusCode(500, addResult.Errors);
 
-                return Ok($"Role '{assignRoleDto.Role}' assigned to user '{assignRoleDto.Username}'.");
+                return Ok($"Role '{role}' assigned to user '{assignRoleDto.Username}'.");
             }
             catch (Exception ex)
             {
