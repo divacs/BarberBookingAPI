@@ -1,198 +1,262 @@
+# BarberBookingAPI
 
-# 💈 BarberBookingAPI
+BarberBookingAPI is an ASP.NET Core Web API for managing barber services, user accounts, roles, and appointment booking workflows. The project uses SQL Server with Entity Framework Core, ASP.NET Core Identity for account management, JWT bearer authentication for API access, and Hangfire for scheduled appointment reminder jobs.
 
-BarberBookingAPI is an ASP.NET Core Web API project for booking appointments in a barbershop. It supports user registration and login, JWT authentication, role-based authorization, sending email confirmations, and includes Single Sign-On (SSO) via Google. The application is structured using Clean Architecture principles and follows security best practices by separating sensitive configuration.
+The codebase is structured as a practical backend API project with separated controllers, DTOs, repositories, services, EF Core migrations, and environment-specific configuration.
 
----
+## Tech Stack
 
-## 🚀 Technologies and Libraries
-
-- ASP.NET Core 8.0
-- Entity Framework Core
+- .NET 8 / ASP.NET Core Web API
+- Entity Framework Core 8
 - SQL Server
-- JWT (JSON Web Tokens)
-- ASP.NET Identity
-- MailKit (email service)
-- Google OAuth 2.0 (SSO)
-- Hangfire (background jobs)
-- Repository Pattern
-- Custom Mapping Classes
-- Clean Architecture
+- ASP.NET Core Identity
+- JWT bearer authentication
+- Google external authentication
+- Hangfire with SQL Server storage
+- MailKit / MimeKit for email delivery
+- Serilog for structured logging
+- Swagger / OpenAPI
 
----
+## Features
 
-## 📂 Project Structure (Clean Architecture)
+- User registration and login
+- JWT token generation with role claims
+- Role-based authorization with `Admin`, `User`, and `Worker` roles
+- Admin role assignment with validation
+- Password reset endpoint for admins
+- Barber service CRUD endpoints
+- Appointment booking, update, delete, filtering, and pagination
+- Appointment reminder background job using Hangfire
+- Email sending through SMTP
+- Google authentication flow
+- Swagger documentation in Development
+- Environment-specific configuration for Development and Production
 
-The project follows **Clean Architecture** principles:
+## Project Structure
 
-```
+```text
 BarberBookingAPI/
-│
-├── Controllers/              // API controllers (Account, Appointments, Auth, Services, TestJob)
-├── Data/                     // ApplicationDBContext (EF Core)
-├── DTOs/                     // Data Transfer Objects (DTOs)
-│   ├── Account/
-│   ├── Appointment/
-│   └── BarberService/
-├── Helpers/                  // Query objects (for pagination/filtering)
-├── Interfaces/              // Repository and service interfaces
-├── Mapper/                  // Custom mapping classes
-├── Migrations/              // EF Core migrations
-├── Models/                  // Entity models
-├── Repository/              // Repository implementations
-├── Service/                 // Email, Token, Background jobs (Hangfire)
-├── Jobs/                    // Hangfire job implementations
-├── Logs/                    // Hangfire job logs (optional)
-├── appsettings.json         // General configuration
-├── appsettings.Development.json // Development secrets (excluded from Git)
++-- Controllers/        API endpoints
++-- Data/               EF Core DbContext and seed data
++-- DTOs/               Request and response contracts
++-- Interfaces/         Repository and service abstractions
++-- Jobs/               Hangfire background jobs
++-- Mapper/             DTO mapping helpers
++-- Migrations/         EF Core migrations and model snapshot
++-- Models/             Domain and Identity models
++-- Repository/         Data access implementations
++-- Service/            Token and email services
++-- Program.cs          Application startup and middleware
++-- appsettings.json    Shared non-secret configuration
++-- appsettings.*.json  Environment-specific configuration
 ```
 
----
+## Architecture Overview
 
-## 🔐 Authentication and Authorization
+The application follows a conventional layered Web API structure:
 
-- Uses ASP.NET Identity for user management
-- JWT is used for authenticating users
-- Two roles supported: `Admin` and `User`
-- Google SSO is implemented for external login via OAuth 2.0
+- Controllers expose HTTP endpoints and enforce authorization rules.
+- DTOs define API request and response shapes.
+- Repositories encapsulate EF Core data access.
+- Services handle cross-cutting application logic such as token creation and email delivery.
+- EF Core migrations define the database schema and seeded Identity roles.
+- Hangfire runs recurring background jobs for appointment reminders.
 
-### 🔑 Endpoints
+## Environment Configuration
 
-- `POST /api/account/register` – Register a new user
-- `POST /api/account/login` – Log in and get JWT token
-- `GET /auth/login-google` – Redirects to Google for SSO login
+The project supports two environments:
 
----
+- `Development`
+- `Production`
 
-## 📅 Appointment Booking
+Local debugging is configured through `Properties/launchSettings.json` with:
 
-Users can:
-
-- View available barber services
-- Book appointments
-- View, update, or delete their appointments
-
----
-
-## 📬 Email Confirmation
-
-A confirmation email is sent when an appointment is created.
-
-- Implemented using **MailKit**
-- Configuration stored in `appsettings.json` and overridden in `appsettings.Development.json`
-
----
-
-## ⏰ Appointment Reminder (Scheduled Job with Hangfire)
-
-- Implemented background job that sends email reminders **1 hour before** the scheduled appointment.
-- Used **Hangfire** to schedule and execute the job.
-- Reminder includes the appointment details and is sent only if the start time is in the future.
-- The job is scheduled automatically after an appointment is created.
-- The reminder job ID is stored in the database.
-
-✅ The job was tested manually using Hangfire Dashboard and via a dedicated controller for test endpoints.
-
----
-
-## 🧪 TestJobController
-
-- Created a separate `TestController` to isolate all testing endpoints from production logic.
-- Allows manual execution and scheduling of reminder jobs.
-
----
-
-## 🌐 Google Authentication (SSO)
-
-- Configured via **Google Developer Console**
-- Requires `ClientId` and `ClientSecret`
-- These credentials are stored securely in `appsettings.Development.json` (excluded from Git)
-
----
-
-## 🔐 Configuration and Security
-
-To avoid leaking sensitive credentials (e.g., email, JWT, Google secrets):
-
-- `appsettings.json` contains general configuration
-- `appsettings.Development.json` contains secrets and is **excluded** from Git
-
-`.gitignore` includes:
-
-```
-appsettings.Development.json
+```text
+ASPNETCORE_ENVIRONMENT=Development
 ```
 
-Ensure `appsettings.Development.json` includes:
+ASP.NET Core loads configuration in the standard order:
 
-```json
-"Authentication": {
-  "Google": {
-    "ClientId": "your-client-id",
-    "ClientSecret": "your-client-secret"
-  }
-},
-"EmailSettings": {
-  "From": "your@email.com",
-  "SmtpServer": "smtp.provider.com",
-  "Port": 465,
-  "Username": "your@email.com",
-  "Password": "yourPassword"
-}
+```text
+appsettings.json
+appsettings.{Environment}.json
+user-secrets / environment variables
 ```
 
----
+Sensitive values should not be committed. Use user-secrets for local development and environment variables in production.
 
-## 📌 Query Objects
+Required configuration keys:
 
-Custom query objects are used for:
+```text
+ConnectionStrings__DefaultConnection
+JWT__Issuer
+JWT__Audience
+JWT__SigningKey
+EmailSettings__From
+EmailSettings__SmtpServer
+EmailSettings__Port
+EmailSettings__Username
+EmailSettings__Password
+Authentication__Google__ClientId
+Authentication__Google__ClientSecret
+```
 
-- Pagination: `?PageNumber=1&PageSize=10`
-- Filtering: Search by parameters
-
----
-
-## 📁 Database
-
-SQL Server is used. Entity Framework Core handles migrations and seeding.
-
-### Commands:
+Example local user-secrets setup:
 
 ```bash
-dotnet ef migrations add InitialCreate
+dotnet user-secrets set "JWT:SigningKey" "replace-with-a-strong-local-signing-key"
+dotnet user-secrets set "EmailSettings:Username" "local-smtp-user"
+dotnet user-secrets set "EmailSettings:Password" "local-smtp-password"
+dotnet user-secrets set "Authentication:Google:ClientId" "local-google-client-id"
+dotnet user-secrets set "Authentication:Google:ClientSecret" "local-google-client-secret"
+```
+
+## Setup and Installation
+
+Prerequisites:
+
+- .NET 8 SDK
+- SQL Server or SQL Server Express
+- EF Core CLI tools
+
+Install EF Core CLI tools if needed:
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
+Restore dependencies:
+
+```bash
+dotnet restore
+```
+
+Build the project:
+
+```bash
+dotnet build
+```
+
+## Database and Migrations
+
+Update the configured SQL Server database:
+
+```bash
 dotnet ef database update
 ```
 
----
+Check whether the EF model has pending changes:
 
-## ✅ How to Run
-
-1. Add your `appsettings.Development.json` with secrets
-2. Apply migrations:
-   ```bash
-   dotnet ef database update
-   ```
-3. Run the project:
-   ```bash
-   dotnet run
-   ```
-4. Open Swagger UI at `https://localhost:<port>/swagger`
-
----
-
-## 📥 Sample User (for testing)
-
-```json
-{
-  "username": "probni",
-  "email": "probni@email.com",
-  "password": "Probni_123456"
-}
+```bash
+dotnet ef migrations has-pending-model-changes --no-build
 ```
 
----
+The application seeds the following Identity roles with deterministic IDs:
 
-## 🙌 Author
+- `Admin`
+- `User`
+- `Worker`
 
-- 👩 Sonja Divac (2025)
-- Project created to demonstrate .NET Web API skills using modern architecture, testing practices, and background job handling with Hangfire.
+## Running Locally
+
+Start the API:
+
+```bash
+dotnet run
+```
+
+With the default development launch profile, the API runs on:
+
+```text
+http://localhost:5246
+```
+
+## API Documentation
+
+Swagger is enabled only in the Development environment.
+
+After starting the application locally, open:
+
+```text
+http://localhost:5246/swagger
+```
+
+Production does not expose Swagger or the developer exception page.
+
+## Authentication Overview
+
+The API uses ASP.NET Core Identity for user management and JWT bearer tokens for authenticated API access.
+
+JWT tokens include role claims and are validated using:
+
+- issuer
+- audience
+- signing key
+- token lifetime
+- signing key validation
+
+Protected endpoints use `[Authorize]` and role-based policies such as:
+
+```csharp
+[Authorize(Roles = "Admin")]
+```
+
+Google authentication is configured as an external authentication flow. External auth failures are logged server-side and return a safe generic error response to the client.
+
+## Background Jobs
+
+Hangfire is configured with SQL Server storage and runs a recurring appointment reminder job:
+
+```text
+send-appointment-reminders
+```
+
+The Hangfire dashboard is available at:
+
+```text
+/hangfire
+```
+
+In Development, the dashboard is accessible for local debugging. In Production, access is restricted to authenticated users in the `Admin` role.
+
+## Production Considerations
+
+- Set `ASPNETCORE_ENVIRONMENT=Production`.
+- Provide secrets through environment variables or a secure secret store.
+- Do not store production connection strings, JWT signing keys, SMTP credentials, or Google OAuth credentials in appsettings files.
+- Keep Swagger and developer exception pages disabled in Production.
+- Use HTTPS termination at the hosting layer.
+- Configure SQL Server with production-grade credentials and backups.
+- Review Hangfire dashboard access before deployment.
+- Monitor application logs and background job failures.
+
+## Security Considerations
+
+- JWT signing keys must be strong and at least 32 characters long.
+- The production JWT signing key must come from environment variables or a secure secret source.
+- Exception details are logged server-side and should not be returned to API clients.
+- Role assignment validates the requested role before modifying existing user roles.
+- SMTP certificate bypass is limited to explicit Development configuration.
+- Dependency vulnerability checks should be part of regular maintenance:
+
+```bash
+dotnet list package --vulnerable --include-transitive
+```
+
+## Useful Commands
+
+```bash
+dotnet restore
+dotnet build
+dotnet ef database update
+dotnet ef migrations has-pending-model-changes --no-build
+dotnet run
+```
+
+## Future Improvements
+
+- Add automated integration tests for authentication and appointment workflows.
+- Add CI checks for build, EF migration drift, and vulnerable packages.
+- Add refresh token support if longer-lived sessions are required.
+- Add rate limiting for authentication endpoints.
+- Add Docker configuration for repeatable local and deployment environments.
