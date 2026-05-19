@@ -6,6 +6,7 @@ using BarberBookingAPI.Repository;
 using BarberBookingAPI.Service;
 using Hangfire;
 using Hangfire.Dashboard;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -133,10 +134,9 @@ builder.Services.AddAuthentication(options =>
     // Handle Google OAuth remote failures gracefully
     googleOptions.Events.OnRemoteFailure = context =>
     {
-        var failure = context.Failure?.Message ?? "Unknown error";
-        Console.WriteLine("Google remote failure: " + failure);
+        Log.Warning(context.Failure, "Google remote failure during external authentication.");
         context.HandleResponse();
-        context.Response.Redirect("/error?message=" + Uri.EscapeDataString(failure));
+        context.Response.Redirect("/error");
         return Task.CompletedTask;
     };
 });
@@ -155,6 +155,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("GlobalExceptionHandler");
+
+        if (exceptionFeature?.Error != null)
+            logger.LogError(exceptionFeature.Error, "Unhandled exception while processing {Path}.", exceptionFeature.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+    });
+});
 
 app.UseRouting();
 
@@ -179,8 +194,7 @@ app.MapControllers();
 // Endpoint to handle errors from external authentication (e.g. Google login failures)
 app.MapGet("/error", (HttpContext context) =>
 {
-    var message = context.Request.Query["message"];
-    return Results.Content($"Error during external authentication: {message}");
+    return Results.Content("Error during external authentication.");
 });
 
 app.Run();

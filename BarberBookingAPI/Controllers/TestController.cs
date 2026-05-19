@@ -14,13 +14,15 @@ namespace BarberBookingAPI.Controllers
         private readonly IEmailService _emailService;
         private readonly IAppointmentReminderJob _appointmentJob;
         private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<TestController> _logger;
 
-        public TestController(IAppointmentRepository appointmentRepo, IEmailService emailService, IAppointmentReminderJob appointmentJob, IWebHostEnvironment environment)
+        public TestController(IAppointmentRepository appointmentRepo, IEmailService emailService, IAppointmentReminderJob appointmentJob, IWebHostEnvironment environment, ILogger<TestController> logger)
         {
             _appointmentRepo = appointmentRepo;
             _emailService = emailService;
             _appointmentJob = appointmentJob;
             _environment = environment;
+            _logger = logger;
         }
 
         [HttpPost("test-reminder-job")]
@@ -60,7 +62,8 @@ namespace BarberBookingAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
+                _logger.LogError(ex, "Unexpected error while sending test email.");
+                return StatusCode(500, "Failed to send email.");
             }
         }
         //[HttpGet("send-multiple-emails")]
@@ -88,7 +91,7 @@ namespace BarberBookingAPI.Controllers
         //    }
         //    catch (Exception ex)
         //    {
-        //        return StatusCode(500, $"❌ Failed to send email: {ex.Message}");
+        //        return StatusCode(500, "Failed to send email.");
         //    }
         //}
 

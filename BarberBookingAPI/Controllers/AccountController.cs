@@ -19,12 +19,14 @@ namespace BarberBookingAPI.Controllers
         private readonly ITokenService _tokenService;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IEmailService _emailService; 
-        public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService, SignInManager<ApplicationUser> signInManager, IEmailService emailService)
+        private readonly ILogger<AccountController> _logger;
+        public AccountController(UserManager<ApplicationUser> userManager, ITokenService tokenService, SignInManager<ApplicationUser> signInManager, IEmailService emailService, ILogger<AccountController> logger)
         {
             _userManager = userManager;
             _tokenService = tokenService;
             _signInManager = signInManager;
             _emailService = emailService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -68,9 +70,10 @@ namespace BarberBookingAPI.Controllers
                     }
                 );
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { error = e.Message });
+                _logger.LogError(ex, "Unexpected error while registering user.");
+                return StatusCode(500, new { error = "An unexpected error occurred." });
             }
         }
 
@@ -103,9 +106,10 @@ namespace BarberBookingAPI.Controllers
                  );
 
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { error = e.Message });
+                _logger.LogError(ex, "Unexpected error while logging in user.");
+                return StatusCode(500, new { error = "An unexpected error occurred." });
             }
         }
         [HttpGet("workers")]
@@ -145,9 +149,10 @@ namespace BarberBookingAPI.Controllers
 
                 return Ok($"Role '{assignRoleDto.Role}' assigned to user '{assignRoleDto.Username}'.");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { error = e.Message });
+                _logger.LogError(ex, "Unexpected error while assigning role.");
+                return StatusCode(500, new { error = "An unexpected error occurred." });
             }
         }
         
