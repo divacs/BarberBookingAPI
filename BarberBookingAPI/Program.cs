@@ -21,13 +21,20 @@ using System.Text;
 
 // Configure Serilog for logging to console and file
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
+    .MinimumLevel.Information()
     .WriteTo.Console() // Log output to console for development/debugging
     .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day) // Log to file, daily rolling
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+EnvironmentValidator.Validate(builder.Environment);
 var jwtConfiguration = JwtConfigurationValidator.Validate(builder.Configuration);
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Is(builder.Environment.IsDevelopment() ? Serilog.Events.LogEventLevel.Debug : Serilog.Events.LogEventLevel.Information)
+    .WriteTo.Console()
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
 builder.Host.UseSerilog();
 
@@ -152,24 +159,27 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseExceptionHandler(errorApp =>
+else
 {
-    errorApp.Run(async context =>
+    app.UseExceptionHandler(errorApp =>
     {
-        var exceptionFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("GlobalExceptionHandler");
+        errorApp.Run(async context =>
+        {
+            var exceptionFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("GlobalExceptionHandler");
 
-        if (exceptionFeature?.Error != null)
-            logger.LogError(exceptionFeature.Error, "Unhandled exception while processing {Path}.", exceptionFeature.Path);
+            if (exceptionFeature?.Error != null)
+                logger.LogError(exceptionFeature.Error, "Unhandled exception while processing {Path}.", exceptionFeature.Path);
 
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+        });
     });
-});
+}
 
 app.UseRouting();
 
@@ -224,6 +234,15 @@ public sealed class JwtConfiguration
     public string Issuer { get; init; } = string.Empty;
     public string Audience { get; init; } = string.Empty;
     public string SigningKey { get; init; } = string.Empty;
+}
+
+public static class EnvironmentValidator
+{
+    public static void Validate(IWebHostEnvironment environment)
+    {
+        if (!environment.IsDevelopment() && !environment.IsProduction())
+            throw new InvalidOperationException("Only Development and Production environments are supported.");
+    }
 }
 
 public static class JwtConfigurationValidator
